@@ -1,0 +1,195 @@
+import 'package:app_laundry/Screens/Pesanan.dart';
+import 'package:app_laundry/Screens/laporan.dart';
+import 'package:app_laundry/Screens/settings.dart';
+import 'customers.dart';
+import 'addCustomer.dart';
+import 'navigationBar.dart';
+import 'package:app_laundry/Widgets/customOutlinedButton.dart';
+import 'addOutlet.dart';
+import 'addPesanan.dart';
+import 'package:flutter/material.dart';
+
+class HomeScreen extends StatefulWidget {
+  @override
+  _HomeScreenState createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  String? selectedOutlet = "N2Jewel";
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.grey[900], // Smooth dark mode background
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // --- OUTLET SELECTOR SECTION ---
+                Card(
+                  color: Colors.white,
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: selectedOutlet,
+                              items: const [
+                                DropdownMenuItem(value: "N2Jewel", child: Text("N2Jewel")),
+                                DropdownMenuItem(value: "Outlet 2", child: Text("Outlet 2")),
+                              ],
+                              onChanged: (value) {
+                                setState(() {
+                                  selectedOutlet = value;
+                                });
+                              },
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.add, color: Colors.black54),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => AddOutletScreen()),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                
+                const SizedBox(height: 24),
+                
+                // --- TODAY'S ORDERS SUMMARY CARD ---
+                Card(
+                  color: Colors.amberAccent[100],
+                  elevation: 3,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  child: Column(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: Colors.amber[700],
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.list_alt_sharp, color: Colors.white, size: 28),
+                            ),
+                            const SizedBox(width: 16),
+                            const Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  "Pesanan",
+                                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
+                                ),
+                                Text(
+                                  "Hari Ini",
+                                  style: TextStyle(fontSize: 14, color: Colors.black54),
+                                ),
+                              ],
+                            ),
+                            const Spacer(),
+                            const Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  "Rp. xxx.xxx",
+                                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
+                                ),
+                                Text( 
+                                  "x pesanan",
+                                  style: TextStyle(fontSize: 14, color: Colors.black54),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Divider(thickness: 1, color: Colors.black26, indent: 16, endIndent: 16), // Cleaned up thick divider
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 16.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: [
+                            _buildStatItem("xx.x kg", "Kiloan"),
+                            _buildStatItem("xx.x pcs", "Satuan"),
+                            _buildStatItem("xx.x m", "Meteran"),
+                          ],
+                        ),
+                      )
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                // --- QUICK ACTIONS GRID SECTION ---
+                Card(
+                  color: Colors.white,
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      crossAxisAlignment: CrossAxisAlignment.start, // Keeps labels aligned if text wraps
+                      children: [
+                        MenuActionButton(
+                          icon: Icons.add,
+                          label: "Tambah\nPesanan",
+                          onTap: () {
+                            Navigator.push(context, MaterialPageRoute(builder: (context) => AddPesananScreen()));
+                          },
+                        ),
+                        MenuActionButton(
+                          icon: Icons.search,
+                          label: "Cari\nPesanan",
+                          onTap: () {Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => MainNavigationScreen(currentPageIndex: 1,)));},
+                        ),
+                        MenuActionButton(
+                          icon: Icons.person_add,
+                          label: "Tambah\nPelanggan",
+                          onTap: () {Navigator.push(context, MaterialPageRoute(builder: (context) => AddCustomerScreen()));},
+                        ),
+                        MenuActionButton(
+                          icon: Icons.person_search,
+                          label: "Cari\nPelanggan", // Fixed typo (was duplicates as "Cari Pesanan")
+                          onTap: () {Navigator.push(context, MaterialPageRoute(builder: (context) => CustomerScreen()));},
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Quick helper method to clean up the stats row
+  Widget _buildStatItem(String value, String label) {
+    return Column(
+      children: [
+        Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
+        Text(label, style: const TextStyle(fontSize: 14, color: Colors.black54)),
+      ],
+    );
+  }
+}
+
