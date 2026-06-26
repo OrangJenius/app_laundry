@@ -4,12 +4,14 @@ import 'package:app_laundry/Screens/editCustomer.dart';
 
 class CustomCustomerCard extends StatelessWidget {
   final IconData icon;
+  final String id;
   final String name;
   final String phone_number;
   final String address;
 
   const CustomCustomerCard({
     super.key,
+    required this.id,
     required this.icon,
     required this.name,
     required this.phone_number,
@@ -224,10 +226,7 @@ class CustomCustomerCard extends StatelessWidget {
                     child: ElevatedButton.icon(
                       onPressed: () {
                         Navigator.pop(context); // Tutup bottom sheet customer menu
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => EditCustomerScreen()),
-                        );
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => EditCustomerScreen(id: this.id, nama: this.name, alamat: this.address, phone: this.phone_number,)));
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.blue,

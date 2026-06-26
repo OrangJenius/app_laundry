@@ -1,3 +1,5 @@
+import 'package:app_laundry/Models/addCustomerModel.dart';
+import 'package:app_laundry/Services/customer_service.dart';
 import 'package:flutter/material.dart';
 import 'package:app_laundry/Widgets/customUpperBarNoMenu.dart';
 
@@ -11,6 +13,18 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
   final TextEditingController _namaController = TextEditingController();
   final TextEditingController _alamatController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
+
+  final _customerService = CustomerService(); 
+
+  void addCustomer() async {
+    final newCustomer = Customer(
+      alamat: _alamatController.text, 
+      nama: _namaController.text, 
+      phoneNumber: _phoneController.text,
+    );
+    print("$newCustomer.nama, $newCustomer.alamat, $newCustomer.phoneNumber");
+    await _customerService.addCustomer(newCustomer);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -59,7 +73,7 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
                     SizedBox(width: 12),
                     Expanded(
                       child: TextField(
-                        controller: _alamatController,
+                        controller: _phoneController,
                         style: TextStyle(color: Colors.white),
                         maxLines: 2, // Alamat biasanya panjang, diberi 2 baris agar rapi
                         decoration: InputDecoration(
@@ -87,7 +101,7 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
                     SizedBox(width: 12),
                     Expanded(
                       child: TextField(
-                        controller: _phoneController,
+                        controller: _alamatController,
                         keyboardType: TextInputType.phone, // Memunculkan keyboard angka
                         style: TextStyle(color: Colors.white),
                         decoration: InputDecoration(
@@ -115,17 +129,48 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
                   width: double.infinity, // Membuat tombol full-width agar lebih modern
                   height: 48, // Mengatur tinggi tombol agar pas di jari
                   child: ElevatedButton(
-                    onPressed: () {
-                      // Logika ketika data ditambahkan
-                      print("Nama: ${_namaController.text}");
+                    onPressed: () async {
+                      // Validasi sederhana: Pastikan nama tidak kosong sebelum insert
+                      if (_namaController.text.trim().isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Nama customer tidak boleh kosong!")),
+                        );
+                        return;
+                      }
+
+                      try {
+                        // 1. Panggil fungsi insert data kamu
+                        addCustomer();
+
+                        // 2. Tampilkan pesan sukses
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text("Pelanggan berhasil ditambahkan!"),
+                              backgroundColor: Colors.green,
+                            ),
+                          );
+                          // 3. Kembali ke halaman sebelumnya (List Pelanggan)
+                          Navigator.pop(context);
+                        }
+                      } catch (e) {
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text("Gagal menambahkan data: $e"),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      }
                     }, 
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.amberAccent,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8), // Sudut tombol agak melengkung
+                        borderRadius: BorderRadius.circular(8),
                       ),
                     ),
-                    child: Text(
+                    child: const Text(
                       "Tambahkan",
                       style: TextStyle(
                         color: Colors.black87,

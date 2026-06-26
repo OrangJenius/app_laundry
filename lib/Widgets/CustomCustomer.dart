@@ -5,12 +5,14 @@ import 'package:flutter/material.dart';
 // --- REUSABLE CUSTOM CUSTOMER CARD WIDGET ---
 class CustomCustomer extends StatelessWidget {
   final IconData icon;
+  final String id;
   final String name;
   final String phone_number;
   final String address;
 
   const CustomCustomer({
     super.key, 
+    required this.id,
     required this.icon,
     required this.name,
     required this.phone_number,
@@ -104,7 +106,7 @@ class CustomCustomer extends StatelessWidget {
                   Expanded(
                     child: ElevatedButton.icon(
                       onPressed: () {
-                        Navigator.push(context, MaterialPageRoute(builder: (context) => EditCustomerScreen()));
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => EditCustomerScreen(id: this.id, nama: this.name, alamat: this.address, phone: this.phone_number,)));
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.blue,

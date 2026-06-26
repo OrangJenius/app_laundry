@@ -1,3 +1,4 @@
+import 'package:app_laundry/Widgets/customUpperBarNoMenu.dart';
 import 'package:flutter/material.dart';
 // Sesuaikan dengan lokasi file custom upper bar Anda jika diperlukan
 // import 'package:app_laundry/Widgets/customUpperBarNoMenu.dart'; 
@@ -21,6 +22,9 @@ class _PengaturanNotaScreenState extends State<PengaturanNotaScreen> {
   bool _logoOutlet = false;
   bool _noHandphonePelanggan = false;
   bool _alamatPelanggan = false;
+   bool _logoOutlet2 = false;
+  bool _noHandphonePelanggan2 = false;
+  bool _alamatPelanggan2 = false;
 
   @override
   void dispose() {
@@ -37,6 +41,7 @@ class _PengaturanNotaScreenState extends State<PengaturanNotaScreen> {
         child: SingleChildScrollView(
           child: Column(
             children: [
+              UpperBar2(title: "PENGATURAN NOTA"),
               // Menggunakan widget placeholder jika UpperBar2 belum diimport dengan benar
               const Padding(
                 padding: EdgeInsets.all(16.0),
@@ -130,7 +135,7 @@ class _PengaturanNotaScreenState extends State<PengaturanNotaScreen> {
                   child: Theme(
                     data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
                     child: ExpansionTile(
-                      controller: _dropdownController1, // Pasang controller pertama
+                      controller: _dropdownController2, // Pasang controller pertama
                       title: const Text(
                         "Nota Produksi",
                         style: TextStyle(color: Colors.black, fontSize: 15, fontWeight: FontWeight.w500), // Diubah ke hitam karena background putih
@@ -141,16 +146,16 @@ class _PengaturanNotaScreenState extends State<PengaturanNotaScreen> {
                       children: [
                         const Divider(color: Colors.grey, height: 1),
                         const SizedBox(height: 8),
-                        _buildSwitchRow("Logo Outlet", _logoOutlet, (val) {
-                          setState(() => _logoOutlet = val);
+                        _buildSwitchRow("Logo Outlet", _logoOutlet2, (val) {
+                          setState(() => _logoOutlet2 = val);
                         }),
                         const Divider(color: Colors.grey),
-                        _buildSwitchRow("No Handphone Pelanggan", _noHandphonePelanggan, (val) {
-                          setState(() => _noHandphonePelanggan = val);
+                        _buildSwitchRow("No Handphone Pelanggan", _noHandphonePelanggan2, (val) {
+                          setState(() => _noHandphonePelanggan2 = val);
                         }),
                         const Divider(color: Colors.grey),
-                        _buildSwitchRow("Alamat Pelanggan", _alamatPelanggan, (val) {
-                          setState(() => _alamatPelanggan = val);
+                        _buildSwitchRow("Alamat Pelanggan", _alamatPelanggan2, (val) {
+                          setState(() => _alamatPelanggan2 = val);
                         }),
                         const SizedBox(height: 16),
                         
@@ -159,7 +164,7 @@ class _PengaturanNotaScreenState extends State<PengaturanNotaScreen> {
                           height: 36,
                           child: OutlinedButton.icon(
                             onPressed: () {
-                              _dropdownController1.collapse(); // Menutup tile pertama
+                              _dropdownController2.collapse(); // Menutup tile pertama
                             },
                             style: OutlinedButton.styleFrom(
                               side: const BorderSide(color: Colors.amber),

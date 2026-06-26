@@ -1,8 +1,15 @@
 import 'package:app_laundry/Screens/navigationBar.dart';
 import 'package:app_laundry/Screens/splashScreen.dart';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized(); // 👈 Ensure this is at the top!
+  /// TODO: update Supabase credentials with your own
+  await Supabase.initialize(
+    url: 'https://yknkzzvpqsirooocygik.supabase.co',
+    publishableKey: 'sb_publishable_DpEYRD7adLTSupZ4A6rc_w_G1WMLtiG',
+  );
   runApp(const MyApp());
 }
 
@@ -13,7 +20,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Manage Laundry',
       theme: ThemeData(
         // This is the theme of your application.
         //
@@ -32,7 +39,7 @@ class MyApp extends StatelessWidget {
         // tested with just a hot reload.
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
-      home: MainNavigationScreen(currentPageIndex: 0,),
+      home: SplashScreen(),
     );
   }
 }

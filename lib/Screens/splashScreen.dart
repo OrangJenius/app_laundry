@@ -1,6 +1,6 @@
 import 'dart:async';
+import 'package:app_laundry/Screens/auth_gate.dart';
 import 'package:flutter/material.dart';
-import 'package:app_laundry/Screens/loginScreen.dart';
 
 class SplashScreen extends StatefulWidget {
   @override
@@ -16,7 +16,7 @@ class _SplashScreenState extends State<SplashScreen> {
       // Replace 'HomeScreen()' with your actual landing page widget
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => LoginScreen()),
+        MaterialPageRoute(builder: (context) => AuthGate()),
         // MaterialPageRoute(builder: (context) => Scaffold(body: Center(child: Text("Bypassed Login!")))),
       );
     });

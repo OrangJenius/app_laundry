@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:app_laundry/Services/auth_service.dart';
 import 'package:app_laundry/Screens/customers.dart';
 import 'package:app_laundry/Screens/pengaturanAkun.dart';
 import 'package:app_laundry/Screens/pengaturanAntarJemput.dart';
@@ -19,7 +20,11 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-    String selectedOutlet = "N2Jewel"; 
+  String selectedOutlet = "N2Jewel"; 
+  final authService = AuthService();
+  void logout() async{
+    await authService.signOut();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -75,7 +80,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 padding: const EdgeInsets.all(16.0),
                 child: Center(
                   child: ElevatedButton.icon(
-                    onPressed: () {}, 
+                    onPressed: () {
+                      logout();
+                    }, 
                     label: Text("Keluar Akun"),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.amberAccent,

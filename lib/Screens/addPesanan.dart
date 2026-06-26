@@ -14,6 +14,7 @@ class _AddPesananScreenState extends State<AddPesananScreen> {
   final List<Map<String, String>> customers = List.generate(
     10,
     (index) => {
+      "id": "$index",
       "name": "Pelanggan Ke-${index + 1}",
       "phone": "0812-3456-789${index}",
       "address": "Jl. Laundry Sukses No. ${index + 1}, Kota Suka",
@@ -75,6 +76,7 @@ class _AddPesananScreenState extends State<AddPesananScreen> {
                   final customer = customers[index];
                   return CustomCustomerCard(
                     icon: Icons.person,
+                    id: customer["id"]!,
                     name: customer["name"]!,
                     phone_number: customer["phone"]!,
                     address: customer["address"]!,
