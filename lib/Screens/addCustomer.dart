@@ -1,9 +1,12 @@
-import 'package:app_laundry/Models/addCustomerModel.dart';
+import 'package:app_laundry/Models/customerModel.dart';
 import 'package:app_laundry/Services/customer_service.dart';
 import 'package:flutter/material.dart';
 import 'package:app_laundry/Widgets/customUpperBarNoMenu.dart';
 
 class AddCustomerScreen extends StatefulWidget {
+  final String? store_id;
+
+  const AddCustomerScreen({super.key, required this.store_id});
   @override
   _AddCustomerScreenState createState() => _AddCustomerScreenState();
 }
@@ -13,17 +16,37 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
   final TextEditingController _namaController = TextEditingController();
   final TextEditingController _alamatController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
-
+  bool _isLoading = false;
   final _customerService = CustomerService(); 
 
   void addCustomer() async {
+    setState(() {
+      _isLoading = true;
+    });
     final newCustomer = Customer(
       alamat: _alamatController.text, 
       nama: _namaController.text, 
       phoneNumber: _phoneController.text,
+      store_id: widget.store_id,
     );
-    print("$newCustomer.nama, $newCustomer.alamat, $newCustomer.phoneNumber");
+    try{
     await _customerService.addCustomer(newCustomer);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Data berhasil ditambahkan!"), backgroundColor: Colors.green),
+        );
+        Navigator.pop(context); // Tutup halaman edit
+      }
+    }catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Data tidak berhasil ditambahkan, error: $e"), backgroundColor: Colors.red),
+        );
+      }
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -129,40 +152,24 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
                   width: double.infinity, // Membuat tombol full-width agar lebih modern
                   height: 48, // Mengatur tinggi tombol agar pas di jari
                   child: ElevatedButton(
-                    onPressed: () async {
-                      // Validasi sederhana: Pastikan nama tidak kosong sebelum insert
+                    onPressed: _isLoading ? null: () {
                       if (_namaController.text.trim().isEmpty) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(content: Text("Nama customer tidak boleh kosong!")),
                         );
                         return;
+                      }else if (_alamatController.text.trim().isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Alamat customer tidak boleh kosong!")),
+                        );
+                        return;
+                      }else if (_phoneController.text.trim().isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Nomor telepon tidak boleh kosong!")),
+                        );
+                        return;
                       }
-
-                      try {
-                        // 1. Panggil fungsi insert data kamu
-                        addCustomer();
-
-                        // 2. Tampilkan pesan sukses
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text("Pelanggan berhasil ditambahkan!"),
-                              backgroundColor: Colors.green,
-                            ),
-                          );
-                          // 3. Kembali ke halaman sebelumnya (List Pelanggan)
-                          Navigator.pop(context);
-                        }
-                      } catch (e) {
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text("Gagal menambahkan data: $e"),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
-                        }
-                      }
+                      addCustomer();
                     }, 
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.amberAccent,
@@ -170,13 +177,19 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
-                    child: const Text(
+                    child: _isLoading? 
+                    const SizedBox(
+                      height: 20, 
+                      width: 20, 
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2, 
+                        color: 
+                        Colors.black87,
+                        ),
+                      ) 
+                    : const Text(
                       "Tambahkan",
-                      style: TextStyle(
-                        color: Colors.black87,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
+                      style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 16),
                     ),
                   ),
                 ),

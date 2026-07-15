@@ -1,4 +1,5 @@
 import 'package:app_laundry/Screens/addPesanan2.dart';
+import 'package:app_laundry/Services/durasi_service.dart';
 import 'package:flutter/material.dart';
 import 'package:app_laundry/Screens/editCustomer.dart';
 
@@ -8,14 +9,17 @@ class CustomCustomerCard extends StatelessWidget {
   final String name;
   final String phone_number;
   final String address;
+  final String store_id;
+  final durasiService = DurasiService();
 
-  const CustomCustomerCard({
+  CustomCustomerCard({
     super.key,
     required this.id,
     required this.icon,
     required this.name,
     required this.phone_number,
     required this.address,
+    required this.store_id,
   });
 
   // --- MENU TINGKAT 2: PILIHAN PAKET LAUNDRY ---
@@ -55,49 +59,111 @@ class CustomCustomerCard extends StatelessWidget {
               ),
               const SizedBox(height: 16.0),
 
-              // 1. Paket Reguler 72 Jam
-              _buildPackageTile(
-                context: context,
-                icon: Icons.timer_outlined,
-                title: "Reguler 72 Jam",
-                subtitle: "Estimasi selesai dalam 3 hari",
-                color: Colors.blue,
-                onTap: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => AddPesanan2Screen()));
-                  print("Memilih Paket Reguler (72 Jam) untuk $name");
-                  // TODO: Tambahkan logika kelanjutan transaksi Anda di sini
-                },
-              ),
-              const Divider(color: Colors.grey, height: 1),
+              FutureBuilder(
+                future: durasiService.fetchDurasi(store_id), 
+                builder: (context, snapshot){
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(
+                      child: CircularProgressIndicator(color: Colors.amber),
+                    );
+                  }
+                  
+                  // 2. Kondisi jika terjadi error saat fetch data
+                  if (snapshot.hasError) {
+                    return Center(
+                      child: Text(
+                        "Gagal memuat data: ${snapshot.error}",
+                        style: const TextStyle(color: Colors.red),
+                      ),
+                    );
+                  }
 
-              // 2. Paket Ekspres 24 Jam
-              _buildPackageTile(
-                context: context,
-                icon: Icons.flash_on,
-                title: "Ekspres 24 Jam",
-                subtitle: "Estimasi selesai dalam 1 hari",
-                color: Colors.amber,
-                onTap: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => AddPesanan2Screen()));
-                  print("Memilih Paket Ekspres (24 Jam) untuk $name");
-                  // TODO: Tambahkan logika kelanjutan transaksi Anda di sini
-                },
-              ),
-              const Divider(color: Colors.grey, height: 1),
+                  // 3. Kondisi jika data kosong
+                  if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                    return const Center(
+                      child: Text(
+                        "Tidak ada data pelanggan",
+                        style: TextStyle(color: Colors.white70),
+                      ),
+                    );
+                  }
 
-              // 3. Paket Kilat 6 Jam
-              _buildPackageTile(
-                context: context,
-                icon: Icons.bolt,
-                title: "Kilat 6 Jam",
-                subtitle: "Selesai super cepat di hari yang sama",
-                color: Colors.redAccent,
-                onTap: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => AddPesanan2Screen()));
-                  print("Memilih Paket Kilat (6 Jam) untuk $name");
-                  // TODO: Tambahkan logika kelanjutan transaksi Anda di sini
-                },
+                  // 4. Jika data berhasil didapatkan
+                  final durasi = snapshot.data!;
+
+                  return ListView.builder(
+                    padding: EdgeInsets.only(bottom: 16),
+                    shrinkWrap: true,
+                    itemCount: durasi.length,
+                    itemBuilder: (context, index){
+                      final duration = durasi[index];
+                      final hour = duration.hours;
+                      final name = duration.duration_name;
+                      final inthour = int.parse(hour!);
+
+                      final estResult = inthour / 24;
+                      // If estResult is >= 1, it keeps estResult. Otherwise, it uses your custom fallback.
+                      final est = estResult >= 1 ? estResult.toInt() : "Kurang dari 1"; 
+
+
+                      return _buildPackageTile(
+                        context: context, 
+                        icon: Icons.timer_outlined, 
+                        title: "$name ($hour jam)", 
+                        subtitle: "estimasi selesai dalam $est hari", 
+                        color: Colors.blue, 
+                        onTap: (){
+                          Navigator.push(context, MaterialPageRoute(builder: (context) => AddPesanan2Screen(nama: this.name, nomor: this.phone_number, alamat: this.address,)));
+                        },
+                      );
+                    }
+                  );
+                }
               ),
+
+              // // 1. Paket Reguler 72 Jam
+              // _buildPackageTile(
+              //   context: context,
+              //   icon: Icons.timer_outlined,
+              //   title: "Reguler 72 Jam",
+              //   subtitle: "Estimasi selesai dalam 3 hari",
+              //   color: Colors.blue,
+              //   onTap: () {
+              //     Navigator.push(context, MaterialPageRoute(builder: (context) => AddPesanan2Screen(nama: this.name, nomor: this.phone_number, alamat: this.address,)));
+              //     print("Memilih Paket Reguler (72 Jam) untuk $name");
+              //     // TODO: Tambahkan logika kelanjutan transaksi Anda di sini
+              //   },
+              // ),
+              // const Divider(color: Colors.grey, height: 1),
+
+              // // 2. Paket Ekspres 24 Jam
+              // _buildPackageTile(
+              //   context: context,
+              //   icon: Icons.flash_on,
+              //   title: "Ekspres 24 Jam",
+              //   subtitle: "Estimasi selesai dalam 1 hari",
+              //   color: Colors.amber,
+              //   onTap: () {
+              //     Navigator.push(context, MaterialPageRoute(builder: (context) => AddPesanan2Screen(nama: this.name, nomor: this.phone_number, alamat: this.address,)));
+              //     print("Memilih Paket Ekspres (24 Jam) untuk $name");
+              //     // TODO: Tambahkan logika kelanjutan transaksi Anda di sini
+              //   },
+              // ),
+              // const Divider(color: Colors.grey, height: 1),
+
+              // // 3. Paket Kilat 6 Jam
+              // _buildPackageTile(
+              //   context: context,
+              //   icon: Icons.bolt,
+              //   title: "Kilat 6 Jam",
+              //   subtitle: "Selesai super cepat di hari yang sama",
+              //   color: Colors.redAccent,
+              //   onTap: () {
+              //     Navigator.push(context, MaterialPageRoute(builder: (context) => AddPesanan2Screen(nama: this.name, nomor: this.phone_number, alamat: this.address,)));
+              //     print("Memilih Paket Kilat (6 Jam) untuk $name");
+              //     // TODO: Tambahkan logika kelanjutan transaksi Anda di sini
+              //   },
+              // ),
               const SizedBox(height: 12.0),
             ],
           ),

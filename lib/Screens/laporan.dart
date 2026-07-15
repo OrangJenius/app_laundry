@@ -6,12 +6,19 @@ import 'package:app_laundry/Widgets/customUpperBar.dart';
 import 'package:app_laundry/Widgets/customDialog.dart'; // Pastikan dialog kustom Anda diimpor dari sini
 
 class LaporanScreen extends StatefulWidget {
+  // 1. Tambahkan parameter untuk menampung state global
+  final String? selectedStoreId;
+  final ValueChanged<String?> onStoreChanged;
+
+
+  const LaporanScreen({super.key, this.selectedStoreId, required this.onStoreChanged,});
+
   @override
   _LaporanScreenState createState() => _LaporanScreenState();
 }
 
 class _LaporanScreenState extends State<LaporanScreen> {
-  String selectedOutlet = "N2Jewel"; 
+  // Hapus variabel lokal 'String selectedOutlet = "N2Jewel";'
 
   @override
   Widget build(BuildContext context) {
@@ -23,14 +30,9 @@ class _LaporanScreenState extends State<LaporanScreen> {
             children: [
               UpperBar(
                 title: "L A P O R A N",
-                selectedOutlet: selectedOutlet,
-                onOutletChanged: (newValue) {
-                  if (newValue != null) {
-                    setState(() {
-                      selectedOutlet = newValue; 
-                    });
-                  }
-                },
+                // 2. Gunakan data dari widget parent
+                selectedOutlet: widget.selectedStoreId ?? "Pilih Outlet",
+                onOutletChanged: widget.onStoreChanged
               ),
               
               // SECTION 1: Tombol Penambahan & Pengurangan Kas
@@ -51,11 +53,7 @@ class _LaporanScreenState extends State<LaporanScreen> {
                             style: ElevatedButton.styleFrom(backgroundColor: Colors.amber),
                             child: const Text(
                               "Penambahan Kas", 
-                              style: TextStyle(
-                                color: Colors.black87,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
-                              ),
+                              style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 12),
                             ),
                           ),
                         ),
@@ -68,11 +66,7 @@ class _LaporanScreenState extends State<LaporanScreen> {
                             style: ElevatedButton.styleFrom(backgroundColor: Colors.amberAccent),
                             child: const Text(
                               "Pengurangan Kas", 
-                              style: TextStyle(
-                                color: Colors.black87,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
-                              ),
+                              style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 12),
                             ),
                           ),
                         ),
@@ -82,7 +76,7 @@ class _LaporanScreenState extends State<LaporanScreen> {
                 ),
               ),
 
-              // SECTION 2: Judul Saldo Kas + Garis Divider
+              // SECTION 2 & 3: Detail Saldo Kas (Gunakan widget.currentStoreId untuk fetch data dari database Anda nanti)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12.0),
                 child: Card(
@@ -94,18 +88,11 @@ class _LaporanScreenState extends State<LaporanScreen> {
                       children: [
                         const Text(
                           "Saldo Kas",
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                            color: Colors.black,
-                          ),
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black),
                         ),
                         const SizedBox(width: 10),
                         Expanded(
-                          child: Divider(
-                            color: Colors.grey[300],
-                            thickness: 1,
-                          ),
+                          child: Divider(color: Colors.grey[300], thickness: 1),
                         ),
                       ],
                     ),
@@ -113,7 +100,6 @@ class _LaporanScreenState extends State<LaporanScreen> {
                 ),
               ),
 
-              // SECTION 3: Detail Saldo Tunai & Non-Tunai
               Padding(
                 padding: const EdgeInsets.all(12.0),
                 child: Card(
@@ -126,17 +112,17 @@ class _LaporanScreenState extends State<LaporanScreen> {
                       children: [
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
+                          children: const [
                             Row(
-                              children: const [
+                              children: [
                                 Icon(Icons.attach_money, color: Colors.black87),
                                 SizedBox(width: 8),
                                 Text("Saldo Tunai", style: TextStyle(color: Colors.black87)),
                               ],
                             ),
-                            const SizedBox(height: 16), 
+                            SizedBox(height: 16), 
                             Row(
-                              children: const [
+                              children: [
                                 Icon(Icons.monetization_on_outlined, color: Colors.black87),
                                 SizedBox(width: 8),
                                 Text("Saldo Non-Tunai", style: TextStyle(color: Colors.black87)),
@@ -148,15 +134,9 @@ class _LaporanScreenState extends State<LaporanScreen> {
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start, 
                           children: const [
-                            Text(
-                              "Rp. x.xxx.xxx", 
-                              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
-                            ),
+                            Text("Rp. x.xxx.xxx", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
                             SizedBox(height: 22), 
-                            Text(
-                              "Rp. xx.xxx.xxx", 
-                              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
-                            ),
+                            Text("Rp. xx.xxx.xxx", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
                           ],
                         ),
                       ],
@@ -165,7 +145,7 @@ class _LaporanScreenState extends State<LaporanScreen> {
                 ),
               ),
 
-              // SECTION 4: Judul Pesanan Hari Ini
+              // SECTION 4 & 5: Detail Data Pesanan
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12.0),
                 child: Card(
@@ -177,18 +157,11 @@ class _LaporanScreenState extends State<LaporanScreen> {
                       children: [
                         const Text(
                           "Pesanan Hari ini",
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                            color: Colors.black,
-                          ),
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black),
                         ),
                         const SizedBox(width: 10),
                         Expanded(
-                          child: Divider(
-                            color: Colors.grey[300],
-                            thickness: 1,
-                          ),
+                          child: Divider(color: Colors.grey[300], thickness: 1),
                         ),
                       ],
                     ),
@@ -196,7 +169,6 @@ class _LaporanScreenState extends State<LaporanScreen> {
                 ),
               ),
 
-              // SECTION 5: Detail Data Pesanan
               Padding(
                 padding: const EdgeInsets.all(12.0),
                 child: Card(
@@ -209,33 +181,33 @@ class _LaporanScreenState extends State<LaporanScreen> {
                       children: [
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
+                          children: const [
                             Row(
-                              children: const [
+                              children: [
                                 Icon(Icons.money, color: Colors.black87),
                                 SizedBox(width: 8),
                                 Text("Nilai Pesanan", style: TextStyle(color: Colors.black87)),
                               ],
                             ),
-                            const SizedBox(height: 16), 
+                            SizedBox(height: 16), 
                             Row(
-                              children: const [
+                              children: [
                                 Icon(Icons.list_alt_sharp, color: Colors.black87),
                                 SizedBox(width: 8),
                                 Text("Jumlah Pesanan", style: TextStyle(color: Colors.black87)),
                               ],
                             ),
-                            const SizedBox(height: 16),
+                            SizedBox(height: 16),
                             Row(
-                              children: const [
+                              children: [
                                 Icon(Icons.cancel_presentation, color: Colors.black87),
                                 SizedBox(width: 8),
                                 Text("Pesanan Batal", style: TextStyle(color: Colors.black87)),
                               ],
                             ),
-                            const SizedBox(height: 16), 
+                            SizedBox(height: 16), 
                             Row(
-                              children: const [
+                              children: [
                                 Icon(Icons.money_off, color: Colors.black87),
                                 SizedBox(width: 8),
                                 Text("Total Belum Bayar", style: TextStyle(color: Colors.black87)),
@@ -262,7 +234,7 @@ class _LaporanScreenState extends State<LaporanScreen> {
                 ),
               ),
 
-              // SECTION 6: Judul Lihat Laporan
+              // SECTION 6 & 7: Daftar Menu Laporan
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12.0),
                 child: Card(
@@ -274,18 +246,11 @@ class _LaporanScreenState extends State<LaporanScreen> {
                       children: [
                         const Text(
                           "Lihat Laporan",
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                            color: Colors.black,
-                          ),
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black),
                         ),
                         const SizedBox(width: 10),
                         Expanded(
-                          child: Divider(
-                            color: Colors.grey[300],
-                            thickness: 1,
-                          ),
+                          child: Divider(color: Colors.grey[300], thickness: 1),
                         ),
                       ],
                     ),
@@ -293,14 +258,13 @@ class _LaporanScreenState extends State<LaporanScreen> {
                 ),
               ),
 
-              // SECTION 7: Daftar Menu Laporan dengan Dialog yang Berbeda-beda
               _buildMenuLaporan(
                 icon: Icons.monetization_on_outlined,
                 title: "Laporan Kas",
                 subtitle: "Laporan Mutasi Kas",
                 dialog: CustomDateRangeDialogKas(
                   onSubmit: (DateTimeRange periode) {
-                    print("Kas Mulai: ${periode.start} - Selesai: ${periode.end}");
+                    print("Toko Aktif: ${widget.selectedStoreId} | Periode: ${periode.start} - ${periode.end}");
                   },
                 ),
               ),
@@ -308,30 +272,24 @@ class _LaporanScreenState extends State<LaporanScreen> {
                 icon: Icons.list_alt_sharp,
                 title: "Laporan Pesanan",
                 subtitle: "Laporan Data Pesanan",
-                dialog: CustomDateRangeDialogPesanan( // Ganti dengan widget dialog pesanan Anda jika ada
-                  onSubmit: (DateTimeRange periode) {
-                    print("Pesanan terfilter!");
-                  },
+                dialog: CustomDateRangeDialogPesanan(
+                  onSubmit: (DateTimeRange periode) {},
                 ),
               ),
               _buildMenuLaporan(
                 icon: Icons.people,
                 title: "Analisa Pelanggan",
                 subtitle: "Analisa Data Pelanggan",
-                dialog: CustomDateRangeDialogPelanggan( // Ganti dengan widget dialog pelanggan Anda jika ada
-                  onSubmit: (DateTimeRange periode) {
-                    print("Pelanggan terfilter!");
-                  },
+                dialog: CustomDateRangeDialogPelanggan(
+                  onSubmit: (DateTimeRange periode) {},
                 ),
               ),
               _buildMenuLaporan(
                 icon: Icons.dry_cleaning,
                 title: "Laporan Layanan",
                 subtitle: "Analisa Data Layanan",
-                dialog: CustomDateRangeDialogLayanan( // Ganti dengan widget dialog layanan Anda jika ada
-                  onSubmit: (DateTimeRange periode) {
-                    print("Layanan terfilter!");
-                  },
+                dialog: CustomDateRangeDialogLayanan(
+                  onSubmit: (DateTimeRange periode) {},
                 ),
               ),
             ],
@@ -341,7 +299,6 @@ class _LaporanScreenState extends State<LaporanScreen> {
     );
   }
 
-  // Helper Widget yang sudah dibersihkan (Context diambil otomatis dari State)
   Widget _buildMenuLaporan({
     required IconData icon,
     required String title,
@@ -356,27 +313,16 @@ class _LaporanScreenState extends State<LaporanScreen> {
         child: ListTile(
           leading: Container(
             padding: const EdgeInsets.all(6.0),
-            decoration: BoxDecoration(
-              color: Colors.amber,
-              borderRadius: BorderRadius.circular(6.0),
-            ),
+            decoration: BoxDecoration(color: Colors.amber, borderRadius: BorderRadius.circular(6.0)),
             child: Icon(icon, color: Colors.black87),
           ),
-          title: Text(
-            title,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black),
-          ),
-          subtitle: Text(
-            subtitle,
-            style: const TextStyle(color: Colors.black38, fontSize: 12, fontStyle: FontStyle.italic),
-          ),
+          title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black)),
+          subtitle: Text(subtitle, style: const TextStyle(color: Colors.black38, fontSize: 12, fontStyle: FontStyle.italic)),
           trailing: const Icon(Icons.chevron_right, color: Colors.grey),
           onTap: () {
             showDialog(
-              context: context, // Menggunakan context bawaan State class secara otomatis
-              builder: (BuildContext context) {
-                return dialog; 
-              },
+              context: context,
+              builder: (BuildContext context) => dialog,
             );
           },
         ),

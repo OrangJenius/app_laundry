@@ -15,14 +15,21 @@ import 'package:app_laundry/Widgets/customUpperBar.dart';
 import 'package:app_laundry/Widgets/customCardMenu.dart';
 
 class SettingsScreen extends StatefulWidget {
+  final String? selectedStoreId;
+  final ValueChanged<String?> onStoreChanged;
+
+  const SettingsScreen({super.key, this.selectedStoreId, required this.onStoreChanged});
+
   @override
   _SettingsScreenState createState() => _SettingsScreenState();
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  String selectedOutlet = "N2Jewel"; 
+  // Hapus baris 'String selectedOutlet = "N2Jewel";' agar tidak bentrok dengan data global
+
   final authService = AuthService();
-  void logout() async{
+
+  void logout() async {
     await authService.signOut();
   }
 
@@ -36,65 +43,110 @@ class _SettingsScreenState extends State<SettingsScreen> {
             children: [
               UpperBar(
                 title: "P E N G A T U R A N",
-                selectedOutlet: selectedOutlet,
-                onOutletChanged: (newValue) {
-                  if (newValue != null) {
-                    setState(() {
-                      selectedOutlet = newValue;
-                    });
-                  }
+                // 2. Gunakan nilai toko yang dikirim oleh parent widget
+                selectedOutlet: widget.selectedStoreId ?? "Pilih Outlet",
+                onOutletChanged: widget.onStoreChanged
+              ),
+              CustomCardMenu(
+                icon: Icons.person,
+                title: "Pengaturan Akun",
+                subtitle: "Ubah password akun anda",
+                onTap: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => PengaturanAkunScreen()));
                 },
               ),
-              CustomCardMenu(icon: Icons.person, title: "Pengaturan Akun", subtitle: "Ubah password akun anda", onTap: (){
-                Navigator.push(context, MaterialPageRoute(builder: (context) => PengaturanAkunScreen()));
-              },),
-              CustomCardMenu(icon: Icons.store, title: "Pengaturan Outlet", subtitle: "Tambah, ubah, hapus outlet laundry", onTap: () { 
-                Navigator.push(context, MaterialPageRoute(builder: (context) => PengaturanOutletScreen()));
-               },),
-              CustomCardMenu(icon: Icons.timer, title: "Pengaturan Durasi Layanan", subtitle: "Tambah, ubah, hapus durasi layanan", onTap: () {  
-                Navigator.push(context, MaterialPageRoute(builder: (context) => PengaturanDurasiScreen()));
-              },),
-              CustomCardMenu(icon: Icons.dry_cleaning, title: "Pengaturan Layanan", subtitle: "Tambah, ubah, hapus layanan", onTap: () {                 
-                Navigator.push(context, MaterialPageRoute(builder: (context) => PengaturanLayananScreen()));
-               },),
-              CustomCardMenu(icon: Icons.spa, title: "Pengaturan Parfum", subtitle: "Tambah, ubah, hapus parfum", onTap: () {  
-                Navigator.push(context, MaterialPageRoute(builder: (context) => PengaturanParfumScreen()));
-              },),
-              CustomCardMenu(icon: Icons.discount, title: "Pengaturan Diskon", subtitle: "Tambah, ubah, hapus diskon", onTap: () { 
-                Navigator.push(context, MaterialPageRoute(builder: (context) => PengaturanDiskonScreen()));
-               },),
-              CustomCardMenu(icon: Icons.delivery_dining, title: "Pengaturan Antar-Jemput", subtitle: "Tambah, ubah, hapus antar-jemput", onTap: () { 
-                Navigator.push(context, MaterialPageRoute(builder: (context) => PengaturanAntarJemputScreen()));
-               },),
-              CustomCardMenu(icon: Icons.badge, title: "Pengaturan Kasir", subtitle: "Tambah, ubah, hapus Kasir", onTap: () { 
-                Navigator.push(context, MaterialPageRoute(builder: (context) => PengaturanKasirScreen()));
-               },),
-              CustomCardMenu(icon: Icons.people, title: "Pengaturan Pelanggan", subtitle: "Tambah, ubah, hapus pelanggan", onTap: () { 
-                Navigator.push(context, MaterialPageRoute(builder: (context) => CustomerScreen()));
-               },),
-              CustomCardMenu(icon: Icons.receipt, title: "Pengaturan Nota", subtitle: "Atur tampilan nota", onTap: () { 
-                Navigator.push(context, MaterialPageRoute(builder: (context) => PengaturanNotaScreen()));
-               },),
-              Divider(),
+              CustomCardMenu(
+                icon: Icons.store,
+                title: "Pengaturan Outlet",
+                subtitle: "Tambah, ubah, hapus outlet laundry",
+                onTap: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => PengaturanOutletScreen()));
+                },
+              ),
+              CustomCardMenu(
+                icon: Icons.timer,
+                title: "Pengaturan Durasi Layanan",
+                subtitle: "Tambah, ubah, hapus durasi layanan",
+                onTap: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => PengaturanDurasiScreen(store_id: widget.selectedStoreId,)));
+                },
+              ),
+              CustomCardMenu(
+                icon: Icons.dry_cleaning,
+                title: "Pengaturan Layanan",
+                subtitle: "Tambah, ubah, hapus layanan",
+                onTap: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => PengaturanLayananScreen(store_id: widget.selectedStoreId,)));
+                },
+              ),
+              CustomCardMenu(
+                icon: Icons.spa,
+                title: "Pengaturan Parfum",
+                subtitle: "Tambah, ubah, hapus parfum",
+                onTap: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => PengaturanParfumScreen()));
+                },
+              ),
+              CustomCardMenu(
+                icon: Icons.discount,
+                title: "Pengaturan Diskon",
+                subtitle: "Tambah, ubah, hapus diskon",
+                onTap: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => PengaturanDiskonScreen()));
+                },
+              ),
+              CustomCardMenu(
+                icon: Icons.delivery_dining,
+                title: "Pengaturan Antar-Jemput",
+                subtitle: "Tambah, ubah, hapus antar-jemput",
+                onTap: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => PengaturanAntarJemputScreen()));
+                },
+              ),
+              CustomCardMenu(
+                icon: Icons.badge,
+                title: "Pengaturan Kasir",
+                subtitle: "Tambah, ubah, hapus Kasir",
+                onTap: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => PengaturanKasirScreen()));
+                },
+              ),
+              CustomCardMenu(
+                icon: Icons.people,
+                title: "Pengaturan Pelanggan",
+                subtitle: "Tambah, ubah, hapus pelanggan",
+                onTap: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => CustomerScreen(store_id:widget.selectedStoreId,)));
+                },
+              ),
+              CustomCardMenu(
+                icon: Icons.receipt,
+                title: "Pengaturan Nota",
+                subtitle: "Atur tampilan nota",
+                onTap: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => PengaturanNotaScreen()));
+                },
+              ),
+              const Divider(),
               Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Center(
                   child: ElevatedButton.icon(
                     onPressed: () {
                       logout();
-                    }, 
-                    label: Text("Keluar Akun"),
+                    },
+                    label: const Text("Keluar Akun"),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.amberAccent,
                     ),
-                    icon: Icon(Icons.power_settings_new,),
+                    icon: const Icon(Icons.power_settings_new),
                     iconAlignment: IconAlignment.end,
                   ),
                 ),
               ),
             ],
           ),
-        )
+        ),
       ),
     );
   }

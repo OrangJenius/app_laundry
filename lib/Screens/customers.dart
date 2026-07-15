@@ -7,7 +7,8 @@ import 'package:app_laundry/Widgets/customCustomer.dart';
 // import 'package:app_laundry/Models/customer_model.dart'; 
 
 class CustomerScreen extends StatefulWidget {
-  const CustomerScreen({super.key});
+  final String? store_id;
+  const CustomerScreen({super.key, required this.store_id});
 
   @override
   _CustomerScreenState createState() => _CustomerScreenState();
@@ -44,7 +45,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
                   const SizedBox(width: 12),
                   ElevatedButton(
                     onPressed: () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => AddCustomerScreen()));
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => AddCustomerScreen(store_id: widget.store_id,)));
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.amber, 
@@ -116,7 +117,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
             // --- SECTION LIST PELANGGAN (Menggunakan FutureBuilder) ---
             Expanded(
               child: FutureBuilder<List<dynamic>>( // Menggunakan dynamic atau tipe model 'Customer' kamu
-                future: _customerService.fetchCustomers(),
+                future: _customerService.fetchCustomers(widget.store_id),
                 builder: (context, snapshot) {
                   // 1. Kondisi saat data sedang loading/fetching
                   if (snapshot.connectionState == ConnectionState.waiting) {

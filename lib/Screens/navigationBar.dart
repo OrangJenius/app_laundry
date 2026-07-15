@@ -6,38 +6,58 @@ import 'package:app_laundry/Screens/settings.dart';
 import 'package:flutter/material.dart';
 
 class MainNavigationScreen extends StatefulWidget {
-  const MainNavigationScreen({super.key, required this.currentPageIndex});
+  const MainNavigationScreen({super.key, required this.currentPageIndex, required this.owner_id});
   
   final int currentPageIndex;
+  final String owner_id;
 
   @override
   State<MainNavigationScreen> createState() => _MainNavigationScreenState();
 }
 
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
-  // 1. Deklarasikan variabel tanpa langsung mengisi nilainya dengan 0
   late int currentPageIndex;
-
-  // List halaman dipindahkan ke variabel biasa agar lebih efisien
-  final List<Widget> _pages = [
-    HomeScreen(),
-    PesananScreen(),
-    LaporanScreen(),
-    SettingsScreen()
-  ];
+  
+  // KUNCINYA DI SINI: State global untuk menyimpan ID Toko yang aktif
+  String? _currentSelectedStoreId;
 
   @override
   void initState() {
     super.initState();
-    // 2. Tangkap nilai awal yang dikirim dari constructor di sini
     currentPageIndex = widget.currentPageIndex;
+  }
+
+  // Fungsi callback untuk mengubah ID toko dari HomeScreen
+  void _handleStoreChanged(String? newStoreId) {
+    setState(() {
+      _currentSelectedStoreId = newStoreId;
+    });
+  }
+
+  // Ubah List menjadi fungsi List agar bisa menerima data dinamis terbaru
+  List<Widget> _getPages() {
+    return [
+      HomeScreen(
+        selectedStoreId: _currentSelectedStoreId,
+        onStoreChanged: _handleStoreChanged,
+      ),
+      PesananScreen(selectedStoreId: _currentSelectedStoreId,
+        onStoreChanged: _handleStoreChanged,), // Siap menerima filter toko
+      LaporanScreen(selectedStoreId: _currentSelectedStoreId,
+        onStoreChanged: _handleStoreChanged,), // Siap menerima filter toko
+      SettingsScreen(selectedStoreId: _currentSelectedStoreId,
+        onStoreChanged: _handleStoreChanged,),
+    ];
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // Dynamic body swaps the view based on the index
-      body: _pages[currentPageIndex],
+      // Ambil halaman secara dinamis lewat fungsi _getPages()
+      body: IndexedStack(
+          index: currentPageIndex,
+          children: _getPages(),
+        ),
       bottomNavigationBar: NavigationBar(
         onDestinationSelected: (int index) {
           setState(() {
@@ -46,7 +66,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         },
         indicatorColor: Colors.amber,
         selectedIndex: currentPageIndex,
-        destinations: const [ // Ditambahkan const untuk optimasi performa widget statis
+        destinations: const [
           NavigationDestination(
             selectedIcon: Icon(Icons.home),
             icon: Icon(Icons.home_outlined),

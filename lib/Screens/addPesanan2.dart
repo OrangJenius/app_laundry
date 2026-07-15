@@ -3,7 +3,21 @@ import 'package:flutter/material.dart';
 import 'package:app_laundry/Widgets/customUpperBarNoMenu.dart';
 
 class AddPesanan2Screen extends StatefulWidget {
-  const AddPesanan2Screen({super.key});
+  final String nama;
+  final String nomor;
+  final String alamat;
+  
+  // Jika Anda juga mempassing jenis paket (misal: "Reguler 72 Jam") dari card sebelumnya,
+  // Anda bisa mengaktifkan parameter di bawah ini:
+  // final String selectedPackage;
+
+  const AddPesanan2Screen({
+    super.key, 
+    required this.nama, 
+    required this.nomor, 
+    required this.alamat,
+    // this.selectedPackage = "Reguler 72 Jam",
+  });
 
   @override
   _AddPesanan2ScreenState createState() => _AddPesanan2ScreenState();
@@ -13,7 +27,7 @@ class _AddPesanan2ScreenState extends State<AddPesanan2Screen> {
   // State untuk menyimpan jumlah item laundry
   int _itemCount = 0;
   
-  // Harga per kemeja (contoh)
+  // Harga per kemeja
   final int _hargaPerItem = 15000;
   
   // Controller untuk menangani input teks angka secara langsung
@@ -55,6 +69,9 @@ class _AddPesanan2ScreenState extends State<AddPesanan2Screen> {
 
   // --- MODAL BOTTOM SHEET: ATUR PESANAN ---
   void _showPesananMenu(BuildContext context) {
+    // Hitung total harga saat menu dibuka untuk di-pass ke screen berikutnya
+    int totalHarga = _itemCount * _hargaPerItem;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true, // Membuat bottom sheet bisa menyesuaikan tinggi keyboard
@@ -161,9 +178,26 @@ class _AddPesanan2ScreenState extends State<AddPesanan2Screen> {
                     height: 48,
                     child: ElevatedButton.icon(
                       onPressed: () {
-                        Navigator.push(context, MaterialPageRoute(builder: (context) => RincianPesananScreen()));
-                        print("Pesanan Dibuat!");
-                        print("Parfum: $_selectedParfum, Antar-Jemput: $_selectedAntarJemput, Diskon: $_selectedDiskon, Catatan: ${_catatanController.text}");
+                        // Membuka RincianPesananScreen dengan mempassing seluruh data data
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => RincianPesananScreen(
+                              nama: widget.nama,
+                              nomor: widget.nomor,
+                              alamat: widget.alamat,
+                              jumlahItem: _itemCount,
+                              namaItem: "Baju Kemeja",
+                              parfum: _selectedParfum,
+                              antarJemput: _selectedAntarJemput,
+                              diskon: _selectedDiskon,
+                              catatan: _catatanController.text,
+                              totalHarga: totalHarga,
+                            ),
+                          ),
+                        );
+                        
+                        print("Pesanan Dibuat & Data Dikirim!");
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.amber,
@@ -172,7 +206,7 @@ class _AddPesanan2ScreenState extends State<AddPesanan2Screen> {
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),
-                      icon: const Icon(Icons.shopping_bag_outlined,),
+                      icon: const Icon(Icons.shopping_bag_outlined),
                       label: const Text(
                         "Buat Pesanan",
                         style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
@@ -394,21 +428,21 @@ class _AddPesanan2ScreenState extends State<AddPesanan2Screen> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
-                    children: const [
+                    children: [
                       Text(
-                        "John Doe",
-                        style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 14),
+                        widget.nama,
+                        style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 14),
                       ),
                       Text(
-                        "+62xxxxxxxxxx",
-                        style: TextStyle(color: Colors.grey, fontSize: 12),
+                        widget.nomor,
+                        style: const TextStyle(color: Colors.grey, fontSize: 12),
                       ),
                     ],
                   ),
                   const Spacer(),
-                  Text("0 Kg  •  ", style: const TextStyle(color: Colors.black54, fontSize: 13)),
+                  const Text("0 Kg  •  ", style: TextStyle(color: Colors.black54, fontSize: 13)),
                   Text("$_itemCount pcs  •  ", style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 13)),
-                  Text("0 m", style: const TextStyle(color: Colors.black54, fontSize: 13)),
+                  const Text("0 m", style: TextStyle(color: Colors.black54, fontSize: 13)),
                 ],
               ),
             ),

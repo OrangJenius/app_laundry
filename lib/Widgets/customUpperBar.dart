@@ -1,3 +1,4 @@
+import 'package:app_laundry/Widgets/outletDropdown.dart';
 import 'package:flutter/material.dart';
 
 class UpperBar extends StatelessWidget {
@@ -31,15 +32,7 @@ class UpperBar extends StatelessWidget {
             ),
             const Spacer(),
             DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                value: selectedOutlet,
-                items: const [
-                  DropdownMenuItem(value: "N2Jewel", child: Text("N2Jewel")),
-                  DropdownMenuItem(value: "Outlet 2", child: Text("Outlet 2")),
-                ],
-                // 2. Trigger the callback function instead of calling setState here
-                onChanged: onOutletChanged, 
-              ),
+              child: OutletDropdown(selectedStoreId: selectedOutlet, onChanged: onOutletChanged)
             ),
           ],
         ),

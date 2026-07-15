@@ -1,24 +1,104 @@
+import 'package:app_laundry/Screens/detailLaporanPesanan.dart';
 import 'package:app_laundry/Screens/editCustomer.dart';
 import 'package:app_laundry/Screens/rincianPesanan.dart';
+import 'package:app_laundry/Services/customer_service.dart';
 import 'package:flutter/material.dart';
 
 // --- REUSABLE CUSTOM CUSTOMER CARD WIDGET ---
-class CustomCustomer extends StatelessWidget {
+class CustomCustomer extends StatefulWidget {
   final IconData icon;
   final String id;
   final String name;
+  final VoidCallback? onRefresh;
   final String phone_number;
   final String address;
 
   const CustomCustomer({
     super.key, 
+    this.onRefresh,
     required this.id,
     required this.icon,
     required this.name,
     required this.phone_number,
     required this.address,
   });
+
+  @override
+  State<CustomCustomer> createState() => _CustomCustomerState();
+}
+
+class _CustomCustomerState extends State<CustomCustomer> {
   
+  // Fungsi utama untuk menghapus data pelanggan via Service
+  void _deleteCustomer() async {
+    final customerService = CustomerService();
+    try {
+      await customerService.deleteCustomer(widget.id);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Data berhasil dihapus!"), 
+            backgroundColor: Colors.green,
+          ),
+        );
+      widget.onRefresh?.call();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Data tidak berhasil dihapus, error: $e"), 
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  // Fungsi untuk memunculkan Dialog Konfirmasi (Pop-up) sebelum hapus
+  void _showDeleteConfirmation(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          backgroundColor: Colors.grey[900], // Menyesuaikan tema gelap aplikasi
+          title: const Text(
+            "Konfirmasi Hapus",
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+          content: Text(
+            "Apakah Anda yakin ingin menghapus pelanggan bernama ${widget.name}?",
+            style: const TextStyle(color: Colors.white70),
+          ),
+          actions: [
+            // Tombol Batal
+            TextButton(
+              onPressed: () {
+                Navigator.pop(dialogContext); // Menutup dialog saja
+              },
+              child: const Text(
+                "Batal",
+                style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold),
+              ),
+            ),
+            // Tombol Konfirmasi Hapus
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(dialogContext); // Menutup dialog
+                _deleteCustomer(); // Menjalankan fungsi hapus data
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red[700],
+                foregroundColor: Colors.white,
+              ),
+              child: const Text("Hapus", style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   // Fungsi internal untuk memunculkan Lembaran Info dari Bawah (Modal Bottom Sheet)
   void _showCustomerMenu(BuildContext context) {
     showModalBottomSheet(
@@ -39,7 +119,7 @@ class CustomCustomer extends StatelessWidget {
                 child: Container(
                   width: 40,
                   height: 4,
-                  margin: const EdgeInsets.fromLTRB(0,0,0,20),
+                  margin: const EdgeInsets.fromLTRB(0, 0, 0, 20),
                   decoration: BoxDecoration(
                     color: Colors.grey[600],
                     borderRadius: BorderRadius.circular(2),
@@ -56,7 +136,7 @@ class CustomCustomer extends StatelessWidget {
                       color: Colors.amber,
                       borderRadius: BorderRadius.circular(8.0),
                     ),
-                    child: Icon(icon, color: Colors.black87, size: 28),
+                    child: Icon(widget.icon, color: Colors.black87, size: 28),
                   ),
                   const SizedBox(width: 16.0),
                   Expanded(
@@ -64,7 +144,7 @@ class CustomCustomer extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          name,
+                          widget.name,
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 18,
@@ -73,7 +153,7 @@ class CustomCustomer extends StatelessWidget {
                         ),
                         const SizedBox(height: 4.0),
                         Text(
-                          phone_number,
+                          widget.phone_number,
                           style: TextStyle(color: Colors.grey[400], fontSize: 13),
                         ),
                       ],
@@ -90,7 +170,7 @@ class CustomCustomer extends StatelessWidget {
               ),
               const SizedBox(height: 4.0),
               Text(
-                address,
+                widget.address,
                 style: const TextStyle(color: Colors.white70, fontSize: 14),
               ),
               
@@ -106,7 +186,17 @@ class CustomCustomer extends StatelessWidget {
                   Expanded(
                     child: ElevatedButton.icon(
                       onPressed: () {
-                        Navigator.push(context, MaterialPageRoute(builder: (context) => EditCustomerScreen(id: this.id, nama: this.name, alamat: this.address, phone: this.phone_number,)));
+                        Navigator.push(
+                          context, 
+                          MaterialPageRoute(
+                            builder: (context) => EditCustomerScreen(
+                              id: widget.id, 
+                              nama: widget.name, 
+                              alamat: widget.address, 
+                              phone: widget.phone_number,
+                            ),
+                          ),
+                        );
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.blue,
@@ -124,8 +214,10 @@ class CustomCustomer extends StatelessWidget {
                   Expanded(
                     child: ElevatedButton.icon(
                       onPressed: () {
-                        Navigator.push(context, MaterialPageRoute(builder: (context) => RincianPesananScreen()));
-                        // TODO: Jalankan navigasi ke halaman Riwayat
+                        Navigator.push(
+                          context, 
+                          MaterialPageRoute(builder: (context) => DetailLaporanPesananScreen()),
+                        );
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.amber,
@@ -139,11 +231,11 @@ class CustomCustomer extends StatelessWidget {
                   ),
                   const SizedBox(width: 8.0),
 
-                  // Tombol Hapus Pelanggan
+                  // Tombol Hapus Pelanggan (Memicu Pop-up Konfirmasi)
                   ElevatedButton(
                     onPressed: () {
-                      Navigator.pop(context); // Tutup bottom sheet dahulu
-                      // TODO: Jalankan fungsi hapus data
+                      Navigator.pop(context); // Tutup bottom sheet terlebih dahulu agar bersih
+                      _showDeleteConfirmation(context); // Tampilkan pop-up dialog konfirmasi
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.red[700],
@@ -177,10 +269,10 @@ class CustomCustomer extends StatelessWidget {
               color: Colors.amber,
               borderRadius: BorderRadius.circular(6.0),
             ),
-            child: Icon(icon, color: Colors.black87),
+            child: Icon(widget.icon, color: Colors.black87),
           ),
           title: Text(
-            name,
+            widget.name,
             style: const TextStyle(
               fontWeight: FontWeight.bold, 
               fontSize: 14, 
@@ -197,7 +289,7 @@ class CustomCustomer extends StatelessWidget {
                   const Icon(Icons.phone_android_outlined, size: 16, color: Colors.black38),
                   const SizedBox(width: 4.0),
                   Text(
-                    phone_number,
+                    widget.phone_number,
                     style: const TextStyle(color: Colors.black38, fontSize: 12),
                   ),
                 ],
@@ -209,7 +301,7 @@ class CustomCustomer extends StatelessWidget {
                   const SizedBox(width: 4.0),
                   Expanded( 
                     child: Text(
-                      address,
+                      widget.address,
                       style: const TextStyle(color: Colors.black38, fontSize: 12),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -220,7 +312,6 @@ class CustomCustomer extends StatelessWidget {
           ),
           trailing: IconButton(
             onPressed: () {
-              // Menjalankan fungsi bottom sheet dengan melempar context aktif saat ini
               _showCustomerMenu(context);
             },
             style: IconButton.styleFrom(
@@ -233,7 +324,6 @@ class CustomCustomer extends StatelessWidget {
             icon: const Icon(Icons.more_vert), 
           ),
           onTap: () {
-            // Jika baris kartu diklik biasa, bisa juga memunculkan menu yang sama
             _showCustomerMenu(context);
           },
         ),

@@ -1,15 +1,56 @@
+import 'package:app_laundry/Models/durasiModel.dart';
+import 'package:app_laundry/Services/durasi_service.dart';
 import 'package:flutter/material.dart';
 import 'package:app_laundry/Widgets/customUpperBarNoMenu.dart';
 
 class EditDurasiScreen extends StatefulWidget {
+  final String? durasiId;
+  final String? nama;
+  final String? jam;
+
+  const EditDurasiScreen({super.key, required this.durasiId, required this.nama, required this.jam});
   @override
   _EditDurasiScreenState createState() => _EditDurasiScreenState();
 }
 
 class _EditDurasiScreenState extends State<EditDurasiScreen> {
+  final durasiService = DurasiService();
   // Controller untuk mengambil data input (Opsional, tapi sangat disarankan)
   final TextEditingController _namaController = TextEditingController();
   final TextEditingController _lamaController = TextEditingController();
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _namaController.text = widget.nama!;
+    _lamaController.text = widget.jam!;
+  }
+
+  void updateDurasi() async {
+    setState(() {
+      _isLoading = true;
+    });
+    final newDurasi = DurasiModel(duration_name: _namaController.text, hours: _lamaController.text);
+    try{
+    await durasiService.updateDurasi(newDurasi, widget.durasiId);
+    if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Data berhasil diperbarui!"), backgroundColor: Colors.green),
+        );
+        Navigator.pop(context);
+     } // Tutup halaman edit
+    }catch (e){
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Gagal memperbarui data: $e"), backgroundColor: Colors.red),
+        );
+      }
+    setState(() {
+      _isLoading = false;
+    });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -87,23 +128,37 @@ class _EditDurasiScreenState extends State<EditDurasiScreen> {
                   width: double.infinity, // Membuat tombol full-width agar lebih modern
                   height: 48, // Mengatur tinggi tombol agar pas di jari
                   child: ElevatedButton(
-                    onPressed: () {
-                      // Logika ketika data ditambahkan
-                      print("Nama: ${_namaController.text}");
+                    onPressed: _isLoading ? null: () {
+                      if (_namaController.text.trim().isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Nama durasi tidak boleh kosong!")),
+                        );
+                        return;
+                      }else if (_lamaController.text.trim().isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Lama durasi tidak boleh kosong!")),
+                        );
+                        return;
+                      }
+                      updateDurasi();
                     }, 
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.amberAccent,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8), // Sudut tombol agak melengkung
-                      ),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),
-                    child: Text(
+                    child: _isLoading? 
+                    const SizedBox(
+                      height: 20, 
+                      width: 20, 
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2, 
+                        color: 
+                        Colors.black87,
+                        ),
+                      ) 
+                    : const Text(
                       "Simpan",
-                      style: TextStyle(
-                        color: Colors.black87,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
+                      style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 16),
                     ),
                   ),
                 ),

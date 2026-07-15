@@ -1,9 +1,12 @@
+import 'package:app_laundry/Screens/addCustomer.dart';
+import 'package:app_laundry/Services/customer_service.dart';
 import 'package:flutter/material.dart';
 import 'package:app_laundry/Widgets/customUpperBarNoMenu.dart';
 import 'package:app_laundry/Widgets/customCustomerCard.dart';
 
 class AddPesananScreen extends StatefulWidget {
-  const AddPesananScreen({super.key}); // Ditambahkan best-practice constructor
+  const AddPesananScreen({super.key, required this.store_id}); // Ditambahkan best-practice constructor
+  final String? store_id;
 
   @override
   _AddPesananScreenState createState() => _AddPesananScreenState();
@@ -11,16 +14,7 @@ class AddPesananScreen extends StatefulWidget {
 
 class _AddPesananScreenState extends State<AddPesananScreen> {
   // Contoh data dummy untuk simulasi list pelanggan
-  final List<Map<String, String>> customers = List.generate(
-    10,
-    (index) => {
-      "id": "$index",
-      "name": "Pelanggan Ke-${index + 1}",
-      "phone": "0812-3456-789${index}",
-      "address": "Jl. Laundry Sukses No. ${index + 1}, Kota Suka",
-    },
-  );
-
+  final _customerService = CustomerService();
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -50,7 +44,7 @@ class _AddPesananScreenState extends State<AddPesananScreen> {
                   const SizedBox(width: 12),
                   ElevatedButton(
                     onPressed: () {
-                      // Aksi tambah pelanggan baru
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => AddCustomerScreen(store_id: "",)));
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.amber, // Menyamakan aksen dengan CustomCustomerCard
@@ -69,17 +63,54 @@ class _AddPesananScreenState extends State<AddPesananScreen> {
             // --- SECTION LIST PELANGGAN ---
             // Menggunakan Expanded agar ListView bisa mengambil sisa ruang layar tanpa error layout
             Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.only(bottom: 16.0),
-                itemCount: customers.length,
-                itemBuilder: (context, index) {
-                  final customer = customers[index];
-                  return CustomCustomerCard(
-                    icon: Icons.person,
-                    id: customer["id"]!,
-                    name: customer["name"]!,
-                    phone_number: customer["phone"]!,
-                    address: customer["address"]!,
+              child: FutureBuilder<List<dynamic>>( // Menggunakan dynamic atau tipe model 'Customer' kamu
+                future: _customerService.fetchCustomers(widget.store_id),
+                builder: (context, snapshot) {
+                  // 1. Kondisi saat data sedang loading/fetching
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(
+                      child: CircularProgressIndicator(color: Colors.amber),
+                    );
+                  }
+                  
+                  // 2. Kondisi jika terjadi error saat fetch data
+                  if (snapshot.hasError) {
+                    return Center(
+                      child: Text(
+                        "Gagal memuat data: ${snapshot.error}",
+                        style: const TextStyle(color: Colors.red),
+                      ),
+                    );
+                  }
+
+                  // 3. Kondisi jika data kosong
+                  if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                    return const Center(
+                      child: Text(
+                        "Tidak ada data pelanggan",
+                        style: TextStyle(color: Colors.white70),
+                      ),
+                    );
+                  }
+
+                  // 4. Jika data berhasil didapatkan
+                  final customers = snapshot.data!;
+
+                  return ListView.builder(
+                    padding: const EdgeInsets.only(bottom: 16.0),
+                    itemCount: customers.length,
+                    itemBuilder: (context, index) {
+                      final customer = customers[index];
+                      // Penyesuaian: Karena berbentuk object model, panggil propertinya menggunakan titik (.) bukan kurung siku ([])
+                      return CustomCustomerCard(
+                        icon: Icons.person,
+                        name: customer.nama,         // contoh: customer.name
+                        phone_number: customer.phoneNumber, // contoh: customer.phone
+                        address: customer.alamat, 
+                        id: customer.id,
+                        store_id: widget.store_id!,
+                      );
+                    },
                   );
                 },
               ),

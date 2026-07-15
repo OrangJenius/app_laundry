@@ -1,19 +1,26 @@
+import 'package:app_laundry/Screens/detailLaporanLayanan.dart';
 import 'package:flutter/material.dart';
 import 'package:app_laundry/Widgets/customUpperBar.dart';
 import 'rincianPesanan.dart';
 import 'addPesanan.dart';
 
 class PesananScreen extends StatefulWidget {
+  // 1. Tambahkan penampung parameter global toko
+  final String? selectedStoreId;
+  final ValueChanged<String?> onStoreChanged;
+
+
+  const PesananScreen({super.key, this.selectedStoreId, required this.onStoreChanged,});
+
   @override
   _PesananScreenState createState() => _PesananScreenState();
 }
 
 class _PesananScreenState extends State<PesananScreen> {
-  String selectedOutlet = "N2Jewel"; 
+  // Hapus variabel lokal 'String selectedOutlet = "N2Jewel";'
 
   @override
   Widget build(BuildContext context) {
-    // 1. Wrap the Scaffold with DefaultTabController (3 tabs total)
     return DefaultTabController(
       length: 3,
       child: Scaffold(
@@ -23,15 +30,11 @@ class _PesananScreenState extends State<PesananScreen> {
             children: [
               UpperBar(
                 title: "P E S A N A N",
-                selectedOutlet: selectedOutlet,
-                onOutletChanged: (newValue) {
-                  if (newValue != null) {
-                    setState(() {
-                      selectedOutlet = newValue; 
-                    });
-                  }
-                },
+                // 2. Tampilkan outlet yang sedang aktif secara global
+                selectedOutlet: widget.selectedStoreId ?? "Pilih Outlet",
+                onOutletChanged: widget.onStoreChanged
               ),
+              
               // --- SEARCH & ADD ACTION BAR ---
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
@@ -47,7 +50,7 @@ class _PesananScreenState extends State<PesananScreen> {
                     const SizedBox(width: 12),
                     ElevatedButton(
                       onPressed: () {
-                        Navigator.push(context, MaterialPageRoute(builder: (context) => AddPesananScreen()));
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => AddPesananScreen(store_id: "",)));
                       },
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
@@ -59,7 +62,7 @@ class _PesananScreenState extends State<PesananScreen> {
                 ),
               ),
               
-              // --- 2. THE NEW TABBAR WIDGET ---
+              // --- TABBAR WIDGET ---
               TabBar(
                 labelColor: Colors.amber[700],
                 unselectedLabelColor: Colors.grey[400],
@@ -74,21 +77,18 @@ class _PesananScreenState extends State<PesananScreen> {
               
               const SizedBox(height: 8),
 
-              // --- 3. THE TABBARVIEW (Displays content per tab) ---
+              // --- TABBARVIEW ---
               Expanded(
                 child: TabBarView(
                   children: [
-                    // View Content for Tab 1: Ambil
                     ListView(
                       padding: const EdgeInsets.all(16.0),
                       children: [_buildLaundryItemCard("Antrian", "Lunas - Tunai")],
                     ),
-                    // View Content for Tab 2: Siap Ambil
                     ListView(
                       padding: const EdgeInsets.all(16.0),
                       children: [_buildLaundryItemCard("Selesai", "Lunas - QCRIS")],
                     ),
-                    // View Content for Tab 3: Belum Bayar
                     ListView(
                       padding: const EdgeInsets.all(16.0),
                       children: [_buildLaundryItemCard("Proses", "Belum Bayar")],
@@ -103,11 +103,10 @@ class _PesananScreenState extends State<PesananScreen> {
     );
   }
 
-  // Refactored your laundry row item into a clean custom Card structure
   Widget _buildLaundryItemCard(String statusTag, String paymentStatus) {
     return InkWell(
-      onTap: (){
-        Navigator.push(context, MaterialPageRoute(builder: (context) => RincianPesananScreen()));
+      onTap: () {
+        Navigator.push(context, MaterialPageRoute(builder: (context) => DetailLaporanLayananScreen()));
       },
       child: Card(
         color: Colors.white,
@@ -154,10 +153,7 @@ class _PesananScreenState extends State<PesananScreen> {
                 children: [
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.amber[100],
-                      borderRadius: BorderRadius.circular(6),
-                    ),
+                    decoration: BoxDecoration(color: Colors.amber[100], borderRadius: BorderRadius.circular(6)),
                     child: Text(
                       statusTag,
                       style: TextStyle(color: Colors.amber[900], fontWeight: FontWeight.bold, fontSize: 12),

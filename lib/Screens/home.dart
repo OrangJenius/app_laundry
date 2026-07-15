@@ -1,6 +1,7 @@
 import 'package:app_laundry/Screens/Pesanan.dart';
 import 'package:app_laundry/Screens/laporan.dart';
 import 'package:app_laundry/Screens/settings.dart';
+import 'package:app_laundry/Widgets/outletDropdown.dart';
 import 'customers.dart';
 import 'addCustomer.dart';
 import 'navigationBar.dart';
@@ -10,17 +11,27 @@ import 'addPesanan.dart';
 import 'package:flutter/material.dart';
 
 class HomeScreen extends StatefulWidget {
+  // Tambahkan parameter konstruktor baru
+  final String? selectedStoreId;
+  final ValueChanged<String?> onStoreChanged;
+
+  const HomeScreen({
+    super.key,
+    required this.selectedStoreId,
+    required this.onStoreChanged,
+  });
+
   @override
   _HomeScreenState createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  String? selectedOutlet = "N2Jewel";
+  // Hapus variabel lokal "selectedOutlet = 'N2Jewel'" karena datanya sekarang dikontrol oleh parent
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[900], // Smooth dark mode background
+      backgroundColor: Colors.grey[900],
       body: SafeArea(
         child: SingleChildScrollView(
           child: Padding(
@@ -37,20 +48,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
                     child: Row(
                       children: [
+                        // AKTIFKAN KEMBALI: Salurkan data state & callback dari parent
                         Expanded(
-                          child: DropdownButtonHideUnderline(
-                            child: DropdownButton<String>(
-                              value: selectedOutlet,
-                              items: const [
-                                DropdownMenuItem(value: "N2Jewel", child: Text("N2Jewel")),
-                                DropdownMenuItem(value: "Outlet 2", child: Text("Outlet 2")),
-                              ],
-                              onChanged: (value) {
-                                setState(() {
-                                  selectedOutlet = value;
-                                });
-                              },
-                            ),
+                          child: OutletDropdown(
+                            selectedStoreId: widget.selectedStoreId, 
+                            onChanged: widget.onStoreChanged,
                           ),
                         ),
                         IconButton(
@@ -119,7 +121,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ],
                         ),
                       ),
-                      const Divider(thickness: 1, color: Colors.black26, indent: 16, endIndent: 16), // Cleaned up thick divider
+                      const Divider(thickness: 1, color: Colors.black26, indent: 16, endIndent: 16),
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 16.0),
                         child: Row(
@@ -146,29 +148,40 @@ class _HomeScreenState extends State<HomeScreen> {
                     padding: const EdgeInsets.all(16.0),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      crossAxisAlignment: CrossAxisAlignment.start, // Keeps labels aligned if text wraps
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         MenuActionButton(
                           icon: Icons.add,
                           label: "Tambah\nPesanan",
                           onTap: () {
-                            Navigator.push(context, MaterialPageRoute(builder: (context) => AddPesananScreen()));
+                            Navigator.push(context, MaterialPageRoute(builder: (context) => AddPesananScreen(store_id: widget.selectedStoreId,)));
                           },
                         ),
                         MenuActionButton(
                           icon: Icons.search,
                           label: "Cari\nPesanan",
-                          onTap: () {Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => MainNavigationScreen(currentPageIndex: 1,)));},
+                          onTap: () {
+                            // SINKRONISASI: Pastikan parameter owner_id tetap terlempar saat berpindah halaman via pushReplacement
+                            Navigator.pushReplacement(
+                              context, 
+                              MaterialPageRoute(
+                                builder: (context) => MainNavigationScreen(
+                                  currentPageIndex: 1, 
+                                  owner_id: '', // Masukkan owner_id yang sesuai
+                                )
+                              )
+                            );
+                          },
                         ),
                         MenuActionButton(
                           icon: Icons.person_add,
                           label: "Tambah\nPelanggan",
-                          onTap: () {Navigator.push(context, MaterialPageRoute(builder: (context) => AddCustomerScreen()));},
+                          onTap: () {Navigator.push(context, MaterialPageRoute(builder: (context) => AddCustomerScreen(store_id: widget.selectedStoreId,)));},
                         ),
                         MenuActionButton(
                           icon: Icons.person_search,
-                          label: "Cari\nPelanggan", // Fixed typo (was duplicates as "Cari Pesanan")
-                          onTap: () {Navigator.push(context, MaterialPageRoute(builder: (context) => CustomerScreen()));},
+                          label: "Cari\nPelanggan",
+                          onTap: () {Navigator.push(context, MaterialPageRoute(builder: (context) => CustomerScreen(store_id: widget.selectedStoreId,)));},
                         ),
                       ],
                     ),
@@ -182,7 +195,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // Quick helper method to clean up the stats row
   Widget _buildStatItem(String value, String label) {
     return Column(
       children: [
@@ -192,4 +204,3 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 }
-

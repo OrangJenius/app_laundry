@@ -1,15 +1,51 @@
+import 'package:app_laundry/Models/durasiModel.dart';
+import 'package:app_laundry/Services/durasi_service.dart';
 import 'package:flutter/material.dart';
 import 'package:app_laundry/Widgets/customUpperBarNoMenu.dart';
 
 class AddDurasiScreen extends StatefulWidget {
+  final String? store_id;
+
+  const AddDurasiScreen({super.key, required this.store_id});
   @override
   _AddDurasiScreenState createState() => _AddDurasiScreenState();
 }
 
 class _AddDurasiScreenState extends State<AddDurasiScreen> {
+  final durasiService = DurasiService();
   // Controller untuk mengambil data input (Opsional, tapi sangat disarankan)
   final TextEditingController _namaController = TextEditingController();
   final TextEditingController _lamaController = TextEditingController();
+  bool _isLoading = false;
+
+  void addDurasi () async {
+    setState(() {
+      _isLoading = true;
+    });
+    final newDurasi = DurasiModel( 
+      duration_name: _namaController.text, 
+      store_id: widget.store_id, 
+      hours: _lamaController.text,
+    );
+    try{
+      await durasiService.addDurasi(newDurasi);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Data berhasil ditambahkan!"), backgroundColor: Colors.green),
+        );
+        Navigator.pop(context); // Tutup halaman edit
+      }
+    }catch(e){
+      if (mounted){
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Data tidak berhasil ditambahkan error: $e"), backgroundColor: Colors.red),
+        );
+      }
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -87,23 +123,40 @@ class _AddDurasiScreenState extends State<AddDurasiScreen> {
                   width: double.infinity, // Membuat tombol full-width agar lebih modern
                   height: 48, // Mengatur tinggi tombol agar pas di jari
                   child: ElevatedButton(
-                    onPressed: () {
-                      // Logika ketika data ditambahkan
-                      print("Nama: ${_namaController.text}");
-                    }, 
+                    onPressed:
+                      _isLoading? null : () {
+                        if (_namaController.text.trim().isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Namadurasi tidak boleh kosong!")),
+                        );
+                        return;
+                        }else if (_lamaController.text.trim().isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text("Durasi waktu tidak boleh kosong!")),
+                          );
+                          return;
+                        }
+                        addDurasi();
+                      },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.amberAccent,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8), // Sudut tombol agak melengkung
                       ),
                     ),
-                    child: Text(
+                    child: _isLoading? 
+                    const SizedBox(
+                      height: 20, 
+                      width: 20, 
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2, 
+                        color: 
+                        Colors.black87,
+                        ),
+                      ) 
+                    : const Text(
                       "Tambahkan",
-                      style: TextStyle(
-                        color: Colors.black87,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
+                      style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 16),
                     ),
                   ),
                 ),
