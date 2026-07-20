@@ -1,7 +1,12 @@
+import 'package:app_laundry/Models/diskonModel.dart';
+import 'package:app_laundry/Services/diskon_service.dart';
 import 'package:flutter/material.dart';
 import 'package:app_laundry/Widgets/customUpperBarNoMenu.dart';
 
 class AddDiskonScreen extends StatefulWidget {
+  final String store_id;
+
+  const AddDiskonScreen({super.key, required this.store_id});
   @override
   _AddDiskonScreenState createState() => _AddDiskonScreenState();
 }
@@ -9,6 +14,7 @@ class AddDiskonScreen extends StatefulWidget {
 class _AddDiskonScreenState extends State<AddDiskonScreen> {
   // 1. Controller untuk mengambil data input
   final TextEditingController _jumlahController = TextEditingController();
+  final diskonService = DiskonService();
   
   // 2. State untuk menyimpan tipe diskon yang dipilih
   String? _selectedType;
@@ -18,6 +24,34 @@ class _AddDiskonScreenState extends State<AddDiskonScreen> {
     // Disarankan untuk men-dispose controller agar tidak terjadi memory leak
     _jumlahController.dispose();
     super.dispose();
+  }
+
+  bool _isLoading = false;
+
+  void addDiskon() async{
+    setState(() {
+      _isLoading = true;
+    });
+    final newDiskon = DiskonModel(jumlah_diskon: _jumlahController.text, store_id: widget.store_id, tipe_diskon: _selectedType!);
+
+    try{
+      await diskonService.adddiskon(newDiskon);
+      if(mounted){
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Data berhasil ditambahkan!"), backgroundColor: Colors.green,)
+        );
+        Navigator.pop(context);
+      }
+    }catch (e){
+      if (mounted){
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Data gagal ditambahkan, error: $e"), backgroundColor: Colors.red,)
+        );
+      }
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -39,6 +73,7 @@ class _AddDiskonScreenState extends State<AddDiskonScreen> {
                     SizedBox(width: 12),
                     Expanded(
                       child: DropdownMenu<String>(
+                        hintText: "Tipe Diskon",
                         // Mengatur agar lebar dropdown memenuhi layar
                         expandedInsets: EdgeInsets.zero, 
                         // hintText: Text("Pilih Tipe Diskon", style: TextStyle(color: Colors.grey[400])),
@@ -119,18 +154,15 @@ class _AddDiskonScreenState extends State<AddDiskonScreen> {
                   width: double.infinity,
                   height: 48,
                   child: ElevatedButton(
-                    onPressed: () {
+                    onPressed: _isLoading? null: () {
                       // Validasi sederhana sebelum eksekusi data
-                      if (_selectedType == null || _jumlahController.text.isEmpty) {
+                      if (_selectedType == null || _jumlahController.text.trim().isEmpty) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text("Harap isi tipe dan jumlah diskon!")),
+                          const SnackBar(content: Text("Harap isi tipe dan jumlah diskon!")),
                         );
                         return;
                       }
-
-                      // Logika ketika data berhasil ditambahkan
-                      print("Tipe Diskon: $_selectedType");
-                      print("Jumlah: ${_jumlahController.text}");
+                      addDiskon();
                     }, 
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.amberAccent,
@@ -138,13 +170,19 @@ class _AddDiskonScreenState extends State<AddDiskonScreen> {
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
-                    child: Text(
+                    child: _isLoading? 
+                    const SizedBox(
+                      height: 20, 
+                      width: 20, 
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2, 
+                        color: 
+                        Colors.black87,
+                        ),
+                      ) 
+                    : const Text(
                       "Tambahkan",
-                      style: TextStyle(
-                        color: Colors.black87,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
+                      style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 16),
                     ),
                   ),
                 ),

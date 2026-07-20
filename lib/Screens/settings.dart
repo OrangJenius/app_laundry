@@ -80,11 +80,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 },
               ),
               CustomCardMenu(
-                icon: Icons.spa,
+                icon: Icons.cleaning_services,
                 title: "Pengaturan Parfum",
                 subtitle: "Tambah, ubah, hapus parfum",
                 onTap: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => PengaturanParfumScreen()));
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => PengaturanParfumScreen(store_id: widget.selectedStoreId!,)));
                 },
               ),
               CustomCardMenu(
@@ -92,7 +92,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 title: "Pengaturan Diskon",
                 subtitle: "Tambah, ubah, hapus diskon",
                 onTap: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => PengaturanDiskonScreen()));
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => PengaturanDiskonScreen(store_id: widget.selectedStoreId!,)));
                 },
               ),
               CustomCardMenu(
@@ -100,7 +100,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 title: "Pengaturan Antar-Jemput",
                 subtitle: "Tambah, ubah, hapus antar-jemput",
                 onTap: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => PengaturanAntarJemputScreen()));
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => PengaturanAntarJemputScreen(store_id: widget.selectedStoreId!,)));
                 },
               ),
               CustomCardMenu(

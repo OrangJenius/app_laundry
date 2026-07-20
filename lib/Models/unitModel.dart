@@ -2,17 +2,17 @@
 import 'dart:convert';
 
 class UnitModel {
-  final int id; // Matches the int8/int type in your schema
+  final String? id; // Matches the int/int type in your schema
   final String unit_name; // e.g., 'kg', 'm', 'pcs'
 
   UnitModel({
-    required this.id,
+    this.id,
     required this.unit_name,
   });
 
 
   UnitModel copyWith({
-    int? id,
+    String? id,
     String? unit_name,
   }) {
     return UnitModel(
@@ -30,7 +30,7 @@ class UnitModel {
 
   factory UnitModel.fromMap(Map<String, dynamic> map) {
     return UnitModel(
-      id: map['id'] as int,
+      id: map['id']?.toString() as String,
       unit_name: map['unit_name'] as String,
     );
   }

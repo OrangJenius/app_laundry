@@ -1,14 +1,52 @@
+import 'package:app_laundry/Models/parfumModel.dart';
+import 'package:app_laundry/Services/parfum_service.dart';
 import 'package:flutter/material.dart';
 import 'package:app_laundry/Widgets/customUpperBarNoMenu.dart';
 
 class EditParfumScreen extends StatefulWidget {
   @override
   _EditParfumScreenState createState() => _EditParfumScreenState();
+  final String id;
+  final String nama;
+  final String store_id;
+
+  const EditParfumScreen({super.key, required this.id, required this.nama, required this.store_id});
 }
 
 class _EditParfumScreenState extends State<EditParfumScreen> {
   // Controller untuk mengambil data input (Opsional, tapi sangat disarankan)
   final TextEditingController _namaController = TextEditingController();
+  bool _isLoading = false;
+
+  final parfumService = ParfumService();
+
+  void updateParfum () async{
+    setState(() {
+      _isLoading = true;
+    });
+    try{
+      await parfumService.editparfum(widget.id, ParfumModel(nama_parfum: _namaController.text, store_id: widget.store_id));
+      if (mounted){
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Data berhasil diperbarui!"), backgroundColor: Colors.green),
+        );
+        Navigator.pop(context);
+      }
+    } catch (e){
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Data gagal diperbarui, error: #e"), backgroundColor: Colors.red),
+      );
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _namaController.text = widget.nama;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -19,7 +57,7 @@ class _EditParfumScreenState extends State<EditParfumScreen> {
         child: SingleChildScrollView(
           child: Column(
             children: [
-              UpperBar2(title: "TAMBAH PARFUM"),
+              UpperBar2(title: "EDIT PARFUM"),
               
               // FIELD 1: Nama Parfum
               Padding(
@@ -57,9 +95,14 @@ class _EditParfumScreenState extends State<EditParfumScreen> {
                   width: double.infinity, // Membuat tombol full-width agar lebih modern
                   height: 48, // Mengatur tinggi tombol agar pas di jari
                   child: ElevatedButton(
-                    onPressed: () {
-                      // Logika ketika data ditambahkan
-                      print("Nama: ${_namaController.text}");
+                    onPressed: _isLoading? null : () {
+                      if(_namaController.text.trim().isEmpty){
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Nama parfum tidak boleh kosong!"),)
+                        );
+                        return;
+                      }
+                      updateParfum();
                     }, 
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.amberAccent,
@@ -67,7 +110,16 @@ class _EditParfumScreenState extends State<EditParfumScreen> {
                         borderRadius: BorderRadius.circular(8), // Sudut tombol agak melengkung
                       ),
                     ),
-                    child: Text(
+                    child: _isLoading?
+                    const SizedBox(
+                      height: 20, 
+                      width: 20, 
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2, 
+                        color: Colors.black87,
+                      ),
+                    )
+                    : const Text(
                       "Simpan",
                       style: TextStyle(
                         color: Colors.black87,

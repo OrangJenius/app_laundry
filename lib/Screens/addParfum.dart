@@ -1,14 +1,48 @@
+import 'package:app_laundry/Models/parfumModel.dart';
+import 'package:app_laundry/Services/parfum_service.dart';
 import 'package:flutter/material.dart';
 import 'package:app_laundry/Widgets/customUpperBarNoMenu.dart';
 
 class AddParfumScreen extends StatefulWidget {
   @override
   _AddParfumScreenState createState() => _AddParfumScreenState();
+  final String store_id;
+
+  const AddParfumScreen({super.key, required this.store_id});
 }
 
 class _AddParfumScreenState extends State<AddParfumScreen> {
   // Controller untuk mengambil data input (Opsional, tapi sangat disarankan)
   final TextEditingController _namaController = TextEditingController();
+  final parfumService = ParfumService();
+  bool _isLoading = false;
+
+  Future<void> addParfum() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    final newParfum = ParfumModel(nama_parfum: _namaController.text, store_id: widget.store_id);
+
+    try{
+      await parfumService.addparfum(newParfum);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Data berhasil ditambahkan!"), backgroundColor: Colors.green),
+        );
+        Navigator.pop(context);
+      }
+    }catch (e) {
+      if(mounted){
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Data tidak berhasil ditambahkan, error: $e"), backgroundColor: Colors.red,)
+        );
+      }
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -57,9 +91,15 @@ class _AddParfumScreenState extends State<AddParfumScreen> {
                   width: double.infinity, // Membuat tombol full-width agar lebih modern
                   height: 48, // Mengatur tinggi tombol agar pas di jari
                   child: ElevatedButton(
-                    onPressed: () {
+                    onPressed: _isLoading ? null: () {
                       // Logika ketika data ditambahkan
-                      print("Nama: ${_namaController.text}");
+                     if(_namaController.text.trim().isEmpty){
+                       ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Nama durasi tidak boleh kosong!")),
+                        ); 
+                        return; 
+                     }
+                     addParfum();
                     }, 
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.amberAccent,
@@ -67,13 +107,19 @@ class _AddParfumScreenState extends State<AddParfumScreen> {
                         borderRadius: BorderRadius.circular(8), // Sudut tombol agak melengkung
                       ),
                     ),
-                    child: Text(
+                    child: _isLoading? 
+                    const SizedBox(
+                      height: 20, 
+                      width: 20, 
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2, 
+                        color: 
+                        Colors.black87,
+                        ),
+                      ) 
+                    : const Text(
                       "Tambahkan",
-                      style: TextStyle(
-                        color: Colors.black87,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
+                      style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 16),
                     ),
                   ),
                 ),

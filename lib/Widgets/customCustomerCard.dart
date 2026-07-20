@@ -113,57 +113,13 @@ class CustomCustomerCard extends StatelessWidget {
                         subtitle: "estimasi selesai dalam $est hari", 
                         color: Colors.blue, 
                         onTap: (){
-                          Navigator.push(context, MaterialPageRoute(builder: (context) => AddPesanan2Screen(nama: this.name, nomor: this.phone_number, alamat: this.address,)));
+                          Navigator.push(context, MaterialPageRoute(builder: (context) => AddPesanan2Screen(nama: this.name, nomor: this.phone_number, alamat: this.address, store_id: duration.store_id!, durasi_id: duration.id!)));
                         },
                       );
                     }
                   );
                 }
               ),
-
-              // // 1. Paket Reguler 72 Jam
-              // _buildPackageTile(
-              //   context: context,
-              //   icon: Icons.timer_outlined,
-              //   title: "Reguler 72 Jam",
-              //   subtitle: "Estimasi selesai dalam 3 hari",
-              //   color: Colors.blue,
-              //   onTap: () {
-              //     Navigator.push(context, MaterialPageRoute(builder: (context) => AddPesanan2Screen(nama: this.name, nomor: this.phone_number, alamat: this.address,)));
-              //     print("Memilih Paket Reguler (72 Jam) untuk $name");
-              //     // TODO: Tambahkan logika kelanjutan transaksi Anda di sini
-              //   },
-              // ),
-              // const Divider(color: Colors.grey, height: 1),
-
-              // // 2. Paket Ekspres 24 Jam
-              // _buildPackageTile(
-              //   context: context,
-              //   icon: Icons.flash_on,
-              //   title: "Ekspres 24 Jam",
-              //   subtitle: "Estimasi selesai dalam 1 hari",
-              //   color: Colors.amber,
-              //   onTap: () {
-              //     Navigator.push(context, MaterialPageRoute(builder: (context) => AddPesanan2Screen(nama: this.name, nomor: this.phone_number, alamat: this.address,)));
-              //     print("Memilih Paket Ekspres (24 Jam) untuk $name");
-              //     // TODO: Tambahkan logika kelanjutan transaksi Anda di sini
-              //   },
-              // ),
-              // const Divider(color: Colors.grey, height: 1),
-
-              // // 3. Paket Kilat 6 Jam
-              // _buildPackageTile(
-              //   context: context,
-              //   icon: Icons.bolt,
-              //   title: "Kilat 6 Jam",
-              //   subtitle: "Selesai super cepat di hari yang sama",
-              //   color: Colors.redAccent,
-              //   onTap: () {
-              //     Navigator.push(context, MaterialPageRoute(builder: (context) => AddPesanan2Screen(nama: this.name, nomor: this.phone_number, alamat: this.address,)));
-              //     print("Memilih Paket Kilat (6 Jam) untuk $name");
-              //     // TODO: Tambahkan logika kelanjutan transaksi Anda di sini
-              //   },
-              // ),
               const SizedBox(height: 12.0),
             ],
           ),

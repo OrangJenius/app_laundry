@@ -6,52 +6,78 @@ import 'package:app_laundry/Models/unitModel.dart';
 
 class ServiceModel {
   final String? id;
-  final String serviceName;
-  final String price; // Using int since laundry prices are usually whole numbers in IDR
-  final String duration_id; // Nested from your duration table
-  final String unit_id;         // Nested from your unit table
+  final String service_name;
+  final String price; 
+  final String duration_id; 
+  final String unit_id; 
+  final String store_id;
+
+  // Added nested models
+  final DurasiModel? duration;
+  final UnitModel? unit;
 
   ServiceModel({
     this.id,
-    required this.serviceName,
+    required this.service_name,
     required this.price,
     required this.duration_id,
     required this.unit_id,
+    required this.store_id,
+    this.duration,
+    this.unit,
   });
 
   ServiceModel copyWith({
     String? id,
-    String? serviceName,
+    String? service_name,
     String? price,
     String? duration_id,
     String? unit_id,
+    String? store_id,
+    DurasiModel? duration,
+    UnitModel? unit,
   }) {
     return ServiceModel(
       id: id ?? this.id,
-      serviceName: serviceName ?? this.serviceName,
+      service_name: service_name ?? this.service_name,
       price: price ?? this.price,
       duration_id: duration_id ?? this.duration_id,
       unit_id: unit_id ?? this.unit_id,
+      store_id: store_id ?? this.store_id,
+      duration: duration ?? this.duration,
+      unit: unit ?? this.unit,
     );
   }
 
   Map<String, dynamic> toMap() {
-    return <String, dynamic>{
-      'id': id,
-      'serviceName': serviceName,
+    final Map<String, dynamic> map = <String, dynamic>{
+      'service_name': service_name,
       'price': price,
       'duration_id': duration_id,
       'unit_id': unit_id,
+      'store_id' : store_id,
     };
+    if (id != null) {
+      map['id'] = id;
+    }
+    return map;
   }
 
   factory ServiceModel.fromMap(Map<String, dynamic> map) {
     return ServiceModel(
-      id: map['id'] as String,
-      serviceName: map['serviceName'] as String,
-      price: map['price'] as String,
-      duration_id: map['duration_id'] as String,
-      unit_id: map['unit_id'] as String,
+      id: map['id']?.toString() as String?,
+      service_name: map['service_name'] as String,
+      price: map['price'].toString(),
+      duration_id: map['duration_id']?.toString() as String,
+      unit_id: map['unit_id']?.toString() as String,
+      store_id: map['store_id'] as String,
+      // Safely parse nested foreign relations if they are included in select query
+      duration: map['duration'] != null 
+          ? DurasiModel.fromMap(map['duration'] as Map<String, dynamic>) 
+          : null,
+      unit: map['unit'] != null 
+          ? UnitModel.fromMap(map['unit'] as Map<String, dynamic>) 
+          : null,
     );
   }
 
@@ -61,7 +87,7 @@ class ServiceModel {
 
   @override
   String toString() {
-    return 'ServiceModel(id: $id, serviceName: $serviceName, price: $price, duration_id: $duration_id, unit_id: $unit_id)';
+    return 'ServiceModel(id: $id, service_name: $service_name, price: $price, duration_id: $duration_id, unit_id: $unit_id, store_id: $store_id, duration: $duration, unit: $unit)';
   }
 
   @override
@@ -70,18 +96,20 @@ class ServiceModel {
   
     return 
       other.id == id &&
-      other.serviceName == serviceName &&
+      other.service_name == service_name &&
       other.price == price &&
       other.duration_id == duration_id &&
-      other.unit_id == unit_id;
+      other.unit_id == unit_id &&
+      other.store_id == store_id;
   }
 
   @override
   int get hashCode {
     return id.hashCode ^
-      serviceName.hashCode ^
+      service_name.hashCode ^
       price.hashCode ^
       duration_id.hashCode ^
-      unit_id.hashCode;
+      unit_id.hashCode ^
+      store_id.hashCode;
   }
 }

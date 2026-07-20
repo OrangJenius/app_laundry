@@ -1,27 +1,18 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:app_laundry/Models/serviceModel.dart'; // Adjust path accordingly
+import 'package:app_laundry/Models/serviceModel.dart';
 
 class ServiceService {
   final SupabaseClient _supabase = Supabase.instance.client;
 
-  /// Fetch all services for a specific store, including nested Duration and Unit data
+  /// Fetch all services for a specific store, including joined Durasi and Unit data
   Future<List<ServiceModel>> fetchServices(String storeId) async {
     try {
       final response = await _supabase
           .from('service')
           .select('''
-            id,
-            service_name,
-            price,
-            duration (
-              id,
-              duration_name,
-              hours
-            ),
-            unit (
-              id,
-              unit_name
-            )
+            *,
+            duration(*),
+            unit(*)
           ''')
           .eq('store_id', storeId)
           .order('service_name', ascending: true);
@@ -34,18 +25,51 @@ class ServiceService {
     }
   }
 
-  /// Add a new service tied to a specific duration and unit
-  Future<ServiceModel> addService({
-    required ServiceModel service// From your selected unit dropdown
-  }) async {
+  Future<List<ServiceModel>> fetchServicesById(String id) async {
     try {
       final response = await _supabase
           .from('service')
-          .insert({
-            service.toMap()
-          });
+          .select('''
+            *,
+            duration(*),
+            unit(*)
+          ''')
+          .eq('id', id);
 
-      return ServiceModel.fromMap(response);
+      final List<dynamic> data = response as List<dynamic>;
+      return data.map((json) => ServiceModel.fromMap(json)).toList();
+    } catch (e) {
+      print('Error fetching services: $e');
+      rethrow;
+    }
+  }
+
+  /// Fetch services filtered specifically by a duration selection
+  Future<List<ServiceModel>> fetchServicesByDuration(String storeId, String durationId) async {
+    try {
+      final response = await _supabase
+          .from('service')
+          .select('''
+            *,
+            duration(*),
+            unit(*)
+          ''')
+          .eq('store_id', storeId)
+          .eq('duration_id', durationId)
+          .order('service_name', ascending: true);
+
+      final List<dynamic> data = response as List<dynamic>;
+      return data.map((json) => ServiceModel.fromMap(json)).toList();
+    } catch (e) {
+      print('Error fetching services: $e');
+      rethrow;
+    }
+  }
+
+  /// Add a new service
+  Future<void> addService({required ServiceModel service}) async {
+    try {
+      await _supabase.from('service').insert(service.toMap());
     } catch (e) {
       print('Error adding service: $e');
       rethrow;
@@ -53,22 +77,13 @@ class ServiceService {
   }
 
   /// Update service details
-  Future<void> updateService({
-    required int id,
-    required String serviceName,
-    required int price,
-    required int durationId,
-    required int unitId,
-  }) async {
+  Future<void> updateService(ServiceModel newService, String id) async {
     try {
       await _supabase
           .from('service')
-          .update({
-            'service_name': serviceName,
-            'price': price,
-            'duration_id': durationId,
-            'unit_id': unitId,
-          })
+          .update(
+            newService.toMap()
+          )
           .eq('id', id);
     } catch (e) {
       print('Error updating service: $e');
@@ -77,7 +92,7 @@ class ServiceService {
   }
 
   /// Delete a service
-  Future<void> deleteService(int id) async {
+  Future<void> deleteService(String id) async {
     try {
       await _supabase
           .from('service')

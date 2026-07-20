@@ -1,15 +1,57 @@
+import 'package:app_laundry/Models/antarJemputModel.dart';
+import 'package:app_laundry/Services/antarJemput_service.dart';
 import 'package:flutter/material.dart';
 import 'package:app_laundry/Widgets/customUpperBarNoMenu.dart';
 
 class EditAntarJemputScreen extends StatefulWidget {
+  final String id;
+  final String store_id;
+  final String jarak;
+  final String harga;
+
+  const EditAntarJemputScreen({super.key, required this.id, required this.store_id, required this.jarak, required this.harga});
   @override
   _EditAntarJemputScreenState createState() => _EditAntarJemputScreenState();
 }
 
 class _EditAntarJemputScreenState extends State<EditAntarJemputScreen> {
+  @override
+  void initState() {
+    super.initState();
+    _namaController.text = widget.jarak;
+    _lamaController.text = widget.harga;
+  }
   // Controller untuk mengambil data input (Opsional, tapi sangat disarankan)
   final TextEditingController _namaController = TextEditingController();
   final TextEditingController _lamaController = TextEditingController();
+  bool _isLoading = false;
+  final antarJemputService = AntarJemputService();
+
+  void updateAntarJemput() async{
+    setState(() {
+      _isLoading = true;
+    });
+    final newAJ = AntarJemputModel(jarak: _namaController.text, harga: _lamaController.text, store_id: widget.store_id);
+
+    try{
+      await antarJemputService.editantarjemput(widget.id, newAJ);
+      if(mounted){
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Data berhasil diubah!"), backgroundColor: Colors.green,)
+        );
+        Navigator.pop(context);
+      }
+    }catch (e) {
+      if(mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Data gagal diubah, error: $e"), backgroundColor: Colors.red,)
+        );
+      }
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -87,9 +129,13 @@ class _EditAntarJemputScreenState extends State<EditAntarJemputScreen> {
                   width: double.infinity, // Membuat tombol full-width agar lebih modern
                   height: 48, // Mengatur tinggi tombol agar pas di jari
                   child: ElevatedButton(
-                    onPressed: () {
-                      // Logika ketika data ditambahkan
-                      print("Nama: ${_namaController.text}");
+                    onPressed: _isLoading? null: () {
+                      if(_namaController.text.trim().isEmpty || _lamaController.text.trim().isEmpty){
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Jarak dan harga tidak boleh kosong!"))
+                        );
+                      }
+                      updateAntarJemput();
                     }, 
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.amberAccent,
@@ -97,7 +143,16 @@ class _EditAntarJemputScreenState extends State<EditAntarJemputScreen> {
                         borderRadius: BorderRadius.circular(8), // Sudut tombol agak melengkung
                       ),
                     ),
-                    child: Text(
+                    child: _isLoading?
+                    const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.black87,
+                      ),
+                    ) 
+                    : const Text(
                       "Simpan",
                       style: TextStyle(
                         color: Colors.black87,

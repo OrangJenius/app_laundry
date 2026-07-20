@@ -1,7 +1,12 @@
+import 'package:app_laundry/Models/antarJemputModel.dart';
+import 'package:app_laundry/Services/antarJemput_service.dart';
 import 'package:flutter/material.dart';
 import 'package:app_laundry/Widgets/customUpperBarNoMenu.dart';
 
 class AddAntarJemputScreen extends StatefulWidget {
+  final String store_id;
+
+  const AddAntarJemputScreen({super.key, required this.store_id});
   @override
   _AddAntarJemputScreenState createState() => _AddAntarJemputScreenState();
 }
@@ -10,6 +15,33 @@ class _AddAntarJemputScreenState extends State<AddAntarJemputScreen> {
   // Controller untuk mengambil data input (Opsional, tapi sangat disarankan)
   final TextEditingController _namaController = TextEditingController();
   final TextEditingController _lamaController = TextEditingController();
+  final antarJemputService = AntarJemputService();
+  bool _isLoading = false;
+
+  void addAntarJemput () async {
+    setState(() {
+      _isLoading = true;
+    });
+    final newAntarJemput = AntarJemputModel(jarak: _namaController.text, harga: _lamaController.text, store_id: widget.store_id);
+    try{
+      await antarJemputService.addantarjemput(newAntarJemput);
+      if (mounted){
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Data berhasil ditambahkan!"), backgroundColor: Colors.green,)
+        );
+        Navigator.pop(context);
+      }
+    }catch (e){
+      if(mounted){
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Data gagal ditambahkan, error: $e"), backgroundColor: Colors.red,)
+        );
+      }
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -87,9 +119,15 @@ class _AddAntarJemputScreenState extends State<AddAntarJemputScreen> {
                   width: double.infinity, // Membuat tombol full-width agar lebih modern
                   height: 48, // Mengatur tinggi tombol agar pas di jari
                   child: ElevatedButton(
-                    onPressed: () {
-                      // Logika ketika data ditambahkan
-                      print("Nama: ${_namaController.text}");
+                    onPressed: _isLoading? null : () {
+                      if(_namaController.text.trim().isEmpty || _lamaController.text.trim().isEmpty){
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Data nama dan data harga tidak boleh kosong!")
+                          )
+                        );
+                        return;
+                      }
+                      addAntarJemput();
                     }, 
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.amberAccent,
@@ -97,7 +135,16 @@ class _AddAntarJemputScreenState extends State<AddAntarJemputScreen> {
                         borderRadius: BorderRadius.circular(8), // Sudut tombol agak melengkung
                       ),
                     ),
-                    child: Text(
+                    child: _isLoading? 
+                    const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.black87,
+                      )
+                    )
+                    : const Text(
                       "Tambahkan",
                       style: TextStyle(
                         color: Colors.black87,

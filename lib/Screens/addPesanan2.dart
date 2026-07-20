@@ -6,6 +6,8 @@ class AddPesanan2Screen extends StatefulWidget {
   final String nama;
   final String nomor;
   final String alamat;
+  final String store_id;
+  final String durasi_id;
   
   // Jika Anda juga mempassing jenis paket (misal: "Reguler 72 Jam") dari card sebelumnya,
   // Anda bisa mengaktifkan parameter di bawah ini:
@@ -15,7 +17,9 @@ class AddPesanan2Screen extends StatefulWidget {
     super.key, 
     required this.nama, 
     required this.nomor, 
-    required this.alamat,
+    required this.alamat, 
+    required this.store_id, 
+    required this.durasi_id,
     // this.selectedPackage = "Reguler 72 Jam",
   });
 

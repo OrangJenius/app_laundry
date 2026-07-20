@@ -125,17 +125,17 @@ class _AddDurasiScreenState extends State<AddDurasiScreen> {
                   child: ElevatedButton(
                     onPressed:
                       _isLoading? null : () {
-                        if (_namaController.text.trim().isEmpty) {
+                      if (_namaController.text.trim().isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text("Nama durasi tidak boleh kosong!")),
+                      );
+                      return;
+                      }else if (_lamaController.text.trim().isEmpty) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text("Namadurasi tidak boleh kosong!")),
+                          const SnackBar(content: Text("Durasi waktu tidak boleh kosong!")),
                         );
                         return;
-                        }else if (_lamaController.text.trim().isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text("Durasi waktu tidak boleh kosong!")),
-                          );
-                          return;
-                        }
+                      }
                         addDurasi();
                       },
                     style: ElevatedButton.styleFrom(

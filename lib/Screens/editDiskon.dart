@@ -1,7 +1,16 @@
+import 'package:app_laundry/Models/diskonModel.dart';
+import 'package:app_laundry/Services/diskon_service.dart';
 import 'package:flutter/material.dart';
 import 'package:app_laundry/Widgets/customUpperBarNoMenu.dart';
 
 class EditDiskonScreen extends StatefulWidget {
+  final String store_id;
+  final String jumlah;
+  final String id;
+  final String jenis;
+
+  const EditDiskonScreen({super.key, required this.store_id, required this.jumlah, required this.id, required this.jenis});
+
   @override
   _EditDiskonScreenState createState() => _EditDiskonScreenState();
 }
@@ -9,9 +18,18 @@ class EditDiskonScreen extends StatefulWidget {
 class _EditDiskonScreenState extends State<EditDiskonScreen> {
   // 1. Controller untuk mengambil data input
   final TextEditingController _jumlahController = TextEditingController();
+  final diskonService = DiskonService();
+  bool _isLoading = false;
   
   // 2. State untuk menyimpan tipe diskon yang dipilih
   String? _selectedType;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedType = widget.jenis;
+    _jumlahController.text = widget.jumlah;
+  }
 
   @override
   void dispose() {
@@ -20,8 +38,33 @@ class _EditDiskonScreenState extends State<EditDiskonScreen> {
     super.dispose();
   }
 
+  void updateDiskon() async {
+    setState(() {
+      _isLoading = true;
+    });
+    final newDiskon = DiskonModel(jumlah_diskon: _jumlahController.text, store_id: widget.store_id, tipe_diskon: _selectedType!);
+    try{
+      await diskonService.editdiskon(widget.id, newDiskon);
+      if(mounted){
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Data berhasil diupdate!"), backgroundColor: Colors.green,)
+        );
+        Navigator.pop(context);
+      }
+    }catch (e){
+      if(mounted){
+         ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Data gagal diupdate!"), backgroundColor: Colors.red,)
+        );
+      }
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) {;
     return Scaffold(
       backgroundColor: Colors.grey[900],
       body: SafeArea(
@@ -119,7 +162,7 @@ class _EditDiskonScreenState extends State<EditDiskonScreen> {
                   width: double.infinity,
                   height: 48,
                   child: ElevatedButton(
-                    onPressed: () {
+                    onPressed: _isLoading? null : () {
                       // Validasi sederhana sebelum eksekusi data
                       if (_selectedType == null || _jumlahController.text.isEmpty) {
                         ScaffoldMessenger.of(context).showSnackBar(
@@ -127,10 +170,7 @@ class _EditDiskonScreenState extends State<EditDiskonScreen> {
                         );
                         return;
                       }
-
-                      // Logika ketika data berhasil ditambahkan
-                      print("Tipe Diskon: $_selectedType");
-                      print("Jumlah: ${_jumlahController.text}");
+                      updateDiskon();
                     }, 
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.amberAccent,
@@ -138,7 +178,16 @@ class _EditDiskonScreenState extends State<EditDiskonScreen> {
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
-                    child: Text(
+                    child: _isLoading? 
+                    const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2, 
+                        color: Colors.black87,
+                      ),
+                    )
+                    : const Text(
                       "Simpan",
                       style: TextStyle(
                         color: Colors.black87,
