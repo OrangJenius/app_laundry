@@ -1,10 +1,19 @@
+import 'package:app_laundry/Models/orderModel.dart';
+import 'package:app_laundry/Models/transaksiModel.dart';
+import 'package:app_laundry/Models/orderDetailModel.dart';
+import 'package:app_laundry/Models/orderStatusModel.dart';
 import 'package:app_laundry/Screens/rincianPesanan.dart';
 import 'package:app_laundry/Services/antarJemput_service.dart';
 import 'package:app_laundry/Services/diskon_service.dart';
+import 'package:app_laundry/Services/orderDetail_service.dart';
+import 'package:app_laundry/Services/orderStatus_service.dart';
+import 'package:app_laundry/Services/order_service.dart';
 import 'package:app_laundry/Services/parfum_service.dart';
 import 'package:app_laundry/Services/service_service.dart';
+import 'package:app_laundry/Services/transaksi_service.dart';
 import 'package:flutter/material.dart';
 import 'package:app_laundry/Widgets/customUpperBarNoMenu.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AddPesanan2Screen extends StatefulWidget {
   final String nama;
@@ -12,14 +21,16 @@ class AddPesanan2Screen extends StatefulWidget {
   final String alamat;
   final String store_id;
   final String durasi_id;
+  final String customer_id;
 
   const AddPesanan2Screen({
-    super.key, 
-    required this.nama, 
-    required this.nomor, 
-    required this.alamat, 
-    required this.store_id, 
+    super.key,
+    required this.nama,
+    required this.nomor,
+    required this.alamat,
+    required this.store_id,
     required this.durasi_id,
+    required this.customer_id,
   });
 
   @override
@@ -31,6 +42,10 @@ class _AddPesanan2ScreenState extends State<AddPesanan2Screen> {
   final antarJemputService = AntarJemputService();
   final diskonService = DiskonService();
   final serviceService = ServiceService();
+  final orderService = OrderService();
+  final orderDetailService = OrderDetailService();
+  final orderStatusService = OrderStatusService();
+  final transaksiService = TransaksiService();
 
   // Futures cached in State
   late Future<List<dynamic>> _serviceFuture;
@@ -48,10 +63,15 @@ class _AddPesanan2ScreenState extends State<AddPesanan2Screen> {
   dynamic _selectedDiskon;
   final TextEditingController _catatanController = TextEditingController();
 
+  bool _isLoading = false;
+
+  final supabase = Supabase.instance.client;
+
   @override
   void initState() {
     super.initState();
-    _serviceFuture = serviceService.fetchServicesByDuration(widget.store_id, widget.durasi_id);
+    _serviceFuture = serviceService.fetchServicesByDuration(
+        widget.store_id, widget.durasi_id);
     _parfumFuture = parfumService.fetchparfum(widget.store_id);
     _antarJemputFuture = antarJemputService.fetchantarjemput(widget.store_id);
     _diskonFuture = diskonService.fetchdiskon(widget.store_id);
@@ -101,8 +121,114 @@ class _AddPesanan2ScreenState extends State<AddPesanan2Screen> {
     return total;
   }
 
+  /// Process creating the order and its associated detail, status, and transaction models
+  Future<void> addPesanan(int totalHarga, List<dynamic> services) async {
+    final String? uID = supabase.auth.currentUser?.id;
+
+    if (uID == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Sesi login pengguna tidak ditemukan.")),
+      );
+      return;
+    }
+
+    if (_getTotalItemCount() == 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Pilih minimal 1 layanan terlebih dahulu.")),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      // 1. Create Main Order
+      // ✅ FIX: Pass null instead of ''
+      final newOrder = OrderModel(
+        store_id: widget.store_id,
+        duration_id: widget.durasi_id,
+        customer_id: widget.customer_id,
+        total_harga: totalHarga.toString(),
+        parfum_id: _selectedParfum?.id != null ? _selectedParfum.id.toString() : null,
+        antar_jemput_id: _selectedAntarJemput?.id != null ? _selectedAntarJemput.id.toString() : null,
+        profile_id: uID,
+        discount_id: _selectedDiskon?.id != null ? _selectedDiskon.id.toString() : null,
+      );
+      
+      // Create order via OrderService and expect the newly created order/order_id back
+      final createdOrder = await orderService.addOrder(newOrder);
+      final String orderId = createdOrder.id.toString(); 
+
+      // 2. Create Order Details for each selected service
+      for (var service in services) {
+        String serviceId = service.id.toString();
+        int count = _itemCounts[serviceId] ?? 0;
+
+        if (count > 0) {
+          int harga = int.tryParse(service.price.toString()) ?? 0;
+          int subtotal = count * harga;
+
+          final newOrderDetail = OrderDetailModel(
+            order_id: orderId,
+            service_id: serviceId,
+            qty: count.toString(),
+            subtotal: subtotal.toString(),
+            price: service.price.toString(),
+          );
+
+          await orderDetailService.addOrderDetail(newOrderDetail);
+        }
+      }
+
+      // 3. Create Initial Order Status
+      final newOrderStatus = OrderStatusModel(
+        order_id: orderId,
+        status_order: "Pending", // Default initial status
+        profile_id: uID,
+      );
+      await orderStatusService.addOrderStatus(newOrderStatus);
+
+      // 4. Create Initial Transaction Record
+      final newTransaksi = TransaksiModel(
+        order_id: orderId,
+        status_pembayaran: "Belum Bayar",
+        jenis_pembayaran: null,
+      );
+      await transaksiService.addTransaksi(newTransaksi);
+
+      if (!mounted) return;
+
+      // 5. Navigate to Summary or Next Screen
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => RincianPesananScreen(
+            nama: widget.nama,
+            nomor: widget.nomor,
+            alamat: widget.alamat,
+            jumlahItem: _getTotalItemCount(),
+            namaItem: "Layanan Laundry",
+            parfum: _selectedParfum?.nama_parfum ?? 'Tanpa Parfum',
+            antarJemput: _selectedAntarJemput?.jarak ?? 'Tidak',
+            diskon: _selectedDiskon?.jumlah_diskon?.toString() ?? '0',
+            catatan: _catatanController.text,
+            totalHarga: totalHarga,
+          ),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Gagal menambahkan pesanan: $e")),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
   // --- MODAL BOTTOM SHEET: ATUR PESANAN ---
-  void _showPesananMenu(BuildContext context, int totalHarga) {
+  void _showPesananMenu(BuildContext context, int totalHarga, List<dynamic> services) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -208,17 +334,16 @@ class _AddPesanan2ScreenState extends State<AddPesanan2Screen> {
                         if (!snapshot.hasData) {
                           return _buildLoadingDropdown();
                         }
-                        
-                        // Combine fetched discounts with a null item representing "Tanpa Diskon"
+
                         final rawItems = snapshot.data!;
-                        final items = <dynamic>[null, ...rawItems]; 
+                        final items = <dynamic>[null, ...rawItems];
 
                         return _buildDropdownField<dynamic>(
                           value: _selectedDiskon,
                           items: items,
                           itemLabel: (item) {
                             if (item == null) {
-                              return "0"; // Default display text
+                              return "Tanpa Diskon";
                             }
                             if (item.tipe_diskon == "Persentase") {
                               return "${item.jumlah_diskon}%";
@@ -258,25 +383,12 @@ class _AddPesanan2ScreenState extends State<AddPesanan2Screen> {
                       width: double.infinity,
                       height: 48,
                       child: ElevatedButton.icon(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => RincianPesananScreen(
-                                nama: widget.nama,
-                                nomor: widget.nomor,
-                                alamat: widget.alamat,
-                                jumlahItem: _getTotalItemCount(),
-                                namaItem: "Layanan Laundry",
-                                parfum: _selectedParfum?.nama_parfum ?? 'Tanpa Parfum',
-                                antarJemput: _selectedAntarJemput?.jarak ?? 'Tidak',
-                                diskon: _selectedDiskon?.jumlah_diskon?.toString() ?? '0',
-                                catatan: _catatanController.text,
-                                totalHarga: totalHarga,
-                              ),
-                            ),
-                          );
-                        },
+                        onPressed: _isLoading
+                            ? null
+                            : () async {
+                                Navigator.pop(context); // Close modal
+                                await addPesanan(totalHarga, services);
+                              },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.amber,
                           foregroundColor: Colors.black,
@@ -284,10 +396,16 @@ class _AddPesanan2ScreenState extends State<AddPesanan2Screen> {
                             borderRadius: BorderRadius.circular(8),
                           ),
                         ),
-                        icon: const Icon(Icons.shopping_bag_outlined),
-                        label: const Text(
-                          "Buat Pesanan",
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        icon: _isLoading
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2),
+                              )
+                            : const Icon(Icons.shopping_bag_outlined),
+                        label: Text(
+                          _isLoading ? "Memproses..." : "Buat Pesanan",
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                         ),
                       ),
                     ),
@@ -374,7 +492,8 @@ class _AddPesanan2ScreenState extends State<AddPesanan2Screen> {
 
             if (snapshot.hasError) {
               return Center(
-                child: Text("Gagal memuat layanan: ${snapshot.error}", style: const TextStyle(color: Colors.red)),
+                child: Text("Gagal memuat layanan: ${snapshot.error}",
+                    style: const TextStyle(color: Colors.red)),
               );
             }
 
@@ -557,7 +676,7 @@ class _AddPesanan2ScreenState extends State<AddPesanan2Screen> {
 
                       // Action Button to Open Atur Pesanan
                       InkWell(
-                        onTap: () => _showPesananMenu(context, totalHarga),
+                        onTap: () => _showPesananMenu(context, totalHarga, services),
                         child: Container(
                           color: Colors.amber,
                           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),

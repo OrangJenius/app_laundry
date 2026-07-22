@@ -113,7 +113,7 @@ class CustomCustomerCard extends StatelessWidget {
                         subtitle: "estimasi selesai dalam $est hari", 
                         color: Colors.blue, 
                         onTap: (){
-                          Navigator.push(context, MaterialPageRoute(builder: (context) => AddPesanan2Screen(nama: this.name, nomor: this.phone_number, alamat: this.address, store_id: duration.store_id!, durasi_id: duration.id!)));
+                          Navigator.push(context, MaterialPageRoute(builder: (context) => AddPesanan2Screen(customer_id: this.id, nama: this.name, nomor: this.phone_number, alamat: this.address, store_id: duration.store_id!, durasi_id: duration.id!)));
                         },
                       );
                     }

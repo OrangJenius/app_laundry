@@ -1,11 +1,11 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:app_laundry/Models/ProfileModel.dart';
+import 'package:app_laundry/Models/profileModel.dart';
 
 class ProfileService {
   final _supabase = Supabase.instance.client;
   
   Future<List<ProfileModel>> fetchProfile() async {
-     try {
+    try {
       final List<dynamic> data = await _supabase
           .from('profiles') // Your table name
           .select();
