@@ -4,18 +4,26 @@ import 'package:app_laundry/Models/transaksiModel.dart';
 class TransaksiService {
   final _supabase = Supabase.instance.client;
   
-  Future<List<TransaksiModel>> fetchTransaksi(String store_id) async {
+  Future<List<TransaksiModel>> fetchTransaksi(String order_id) async {
     try {
       final List<dynamic> data = await _supabase
           .from('transaction') // Your table name
           .select()
-          .eq('store_id', store_id);
+          .eq('order_id', order_id);
           
       return data.map((json) => TransaksiModel.fromMap(json)).toList();
     } catch (e) {
       print('Error fetching Transaksi: $e');
       rethrow; 
     }
+  }
+  Future<List<dynamic>> fetchTransaksiByOrderIds(List<String> orderIds) async {
+    if (orderIds.isEmpty) return [];
+
+    return await _supabase
+        .from('transaction')
+        .select('*')
+        .inFilter('order_id', orderIds);
   }
   Future<TransaksiModel?> fetchTransaksiWithId(String id) async {
     try {

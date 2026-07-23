@@ -4,18 +4,28 @@ import 'package:app_laundry/Models/orderStatusModel.dart';
 class OrderStatusService {
   final _supabase = Supabase.instance.client;
   
-  Future<List<OrderStatusModel>> fetchOrderStatus(String store_id) async {
+  Future<List<OrderStatusModel>> fetchOrderStatus(String order_id) async {
     try {
       final List<dynamic> data = await _supabase
           .from('order_status') // Your table name
           .select()
-          .eq('store_id', store_id);
+          .eq('order_id', order_id);
           
       return data.map((json) => OrderStatusModel.fromMap(json)).toList();
     } catch (e) {
       print('Error fetching Order: $e');
       rethrow; 
     }
+  }
+  Future<List<dynamic>> fetchOrderStatusByOrderIds(List<String> orderIds) async {
+    if (orderIds.isEmpty) return [];
+    
+    // Note: Using 'order_di' as your database column name
+    return await _supabase
+        .from('order_status')
+        .select('*')
+        .inFilter('order_id', orderIds) 
+        .order('created_at', ascending: true);
   }
   Future<OrderStatusModel?> fetchOrderStatusWithId(String id) async {
     try {

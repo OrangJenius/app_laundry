@@ -4,19 +4,60 @@ import 'package:app_laundry/Models/orderModel.dart';
 class OrderService {
   final _supabase = Supabase.instance.client;
   
-  Future<List<OrderModel>> fetchOrder(String store_id) async {
-    try {
-      final List<dynamic> data = await _supabase
-          .from('order') // Your table name
-          .select()
-          .eq('store_id', store_id);
+  // Future<List<OrderModel>> fetchOrder(String store_id) async {
+  //   try {
+  //     final List<dynamic> data = await _supabase
+  //         .from('order') // Your table name
+  //         .select()
+  //         .eq('store_id', store_id);
           
-      return data.map((json) => OrderModel.fromMap(json)).toList();
-    } catch (e) {
-      print('Error fetching Order: $e');
-      rethrow; 
-    }
+  //     return data.map((json) => OrderModel.fromMap(json)).toList();
+  //   } catch (e) {
+  //     print('Error fetching Order: $e');
+  //     rethrow; 
+  //   }
+  // }
+
+  // Example query inside OrderService:
+  Future<List<dynamic>> fetchOrder(String storeId) async {
+    final response = await _supabase
+        .from('order')
+        .select('*, customer(nama), duration(duration_name)')
+        .eq('store_id', storeId)
+        .order('created_at', ascending: false);
+        
+    return response;
   }
+  // Future<List<dynamic>> fetchOrderNow(String storeId, DateTime time) async {
+  //   // 1. Format the target date to 'YYYY-MM-DD'
+  //   // Ensure you use UTC or Local time depending on how your DB stores data
+  //   final String dateString = "${time.year}-${time.month.toString().padLeft(2, '0')}-${time.day.toString().padLeft(2, '0')}";
+
+  //   final response = await _supabase
+  //       .from('order')
+  //       .select('*, customer(nama), duration(duration_name)')
+  //       .eq('store_id', storeId)
+  //       // 2. Cast created_at to a date string comparison
+  //       .eq('created_at::date', dateString); 
+        
+  //   return response;
+  // }
+
+  // order_service.dart
+  Future<List<dynamic>> fetchOrderNow(String storeId, DateTime date) async {
+    final startOfDay = DateTime(date.year, date.month, date.day).toIso8601String();
+    final endOfDay = DateTime(date.year, date.month, date.day, 23, 59, 59).toIso8601String();
+
+    final response = await _supabase
+        .from('order')
+        .select('*')
+        .eq('store_id', storeId)
+        .gte('created_at', startOfDay)
+        .lte('created_at', endOfDay);
+
+    return response;
+  }
+
   Future<OrderModel?> fetchOrderWithId(String id) async {
     try {
       final data = await _supabase
