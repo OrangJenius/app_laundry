@@ -17,8 +17,9 @@ import 'package:app_laundry/Widgets/customCardMenu.dart';
 class SettingsScreen extends StatefulWidget {
   final String? selectedStoreId;
   final ValueChanged<String?> onStoreChanged;
+  final String owner_id;
 
-  const SettingsScreen({super.key, this.selectedStoreId, required this.onStoreChanged});
+  const SettingsScreen({super.key, this.selectedStoreId, required this.onStoreChanged, required this.owner_id});
 
   @override
   _SettingsScreenState createState() => _SettingsScreenState();
@@ -60,7 +61,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 title: "Pengaturan Outlet",
                 subtitle: "Tambah, ubah, hapus outlet laundry",
                 onTap: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => PengaturanOutletScreen()));
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => PengaturanOutletScreen(owner_id: widget.owner_id,)));
                 },
               ),
               CustomCardMenu(

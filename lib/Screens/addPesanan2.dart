@@ -143,7 +143,6 @@ class _AddPesanan2ScreenState extends State<AddPesanan2Screen> {
 
     try {
       // 1. Create Main Order
-      // ✅ FIX: Pass null instead of ''
       final newOrder = OrderModel(
         store_id: widget.store_id,
         duration_id: widget.durasi_id,
@@ -155,9 +154,11 @@ class _AddPesanan2ScreenState extends State<AddPesanan2Screen> {
         discount_id: _selectedDiskon?.id != null ? _selectedDiskon.id.toString() : null,
       );
       
-      // Create order via OrderService and expect the newly created order/order_id back
       final createdOrder = await orderService.addOrder(newOrder);
       final String orderId = createdOrder.id.toString(); 
+
+      // List untuk menampung nama-nama layanan yang dipilih
+      List<String> selectedServiceNames = [];
 
       // 2. Create Order Details for each selected service
       for (var service in services) {
@@ -167,6 +168,8 @@ class _AddPesanan2ScreenState extends State<AddPesanan2Screen> {
         if (count > 0) {
           int harga = int.tryParse(service.price.toString()) ?? 0;
           int subtotal = count * harga;
+
+          selectedServiceNames.add(service.service_name ?? "Layanan");
 
           final newOrderDetail = OrderDetailModel(
             order_id: orderId,
@@ -183,7 +186,7 @@ class _AddPesanan2ScreenState extends State<AddPesanan2Screen> {
       // 3. Create Initial Order Status
       final newOrderStatus = OrderStatusModel(
         order_id: orderId,
-        status_order: "Pending", // Default initial status
+        status_order: "Pending",
         profile_id: uID,
       );
       await orderStatusService.addOrderStatus(newOrderStatus);
@@ -193,6 +196,8 @@ class _AddPesanan2ScreenState extends State<AddPesanan2Screen> {
         order_id: orderId,
         status_pembayaran: "Belum Bayar",
         jenis_pembayaran: null,
+        profile_id: uID,
+        jumlah_transaksi: totalHarga.toString(),
       );
       await transaksiService.addTransaksi(newTransaksi);
 
@@ -203,16 +208,8 @@ class _AddPesanan2ScreenState extends State<AddPesanan2Screen> {
         context,
         MaterialPageRoute(
           builder: (context) => RincianPesananScreen(
-            nama: widget.nama,
-            nomor: widget.nomor,
-            alamat: widget.alamat,
-            jumlahItem: _getTotalItemCount(),
-            namaItem: "Layanan Laundry",
-            parfum: _selectedParfum?.nama_parfum ?? 'Tanpa Parfum',
-            antarJemput: _selectedAntarJemput?.jarak ?? 'Tidak',
-            diskon: _selectedDiskon?.jumlah_diskon?.toString() ?? '0',
-            catatan: _catatanController.text,
-            totalHarga: totalHarga,
+            order_id: orderId,
+            store_id: widget.store_id,
           ),
         ),
       );

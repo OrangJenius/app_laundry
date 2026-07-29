@@ -22,7 +22,7 @@ class _PengaturanNotaScreenState extends State<PengaturanNotaScreen> {
   bool _logoOutlet = false;
   bool _noHandphonePelanggan = false;
   bool _alamatPelanggan = false;
-   bool _logoOutlet2 = false;
+  bool _logoOutlet2 = false;
   bool _noHandphonePelanggan2 = false;
   bool _alamatPelanggan2 = false;
 
@@ -42,7 +42,6 @@ class _PengaturanNotaScreenState extends State<PengaturanNotaScreen> {
           child: Column(
             children: [
               UpperBar2(title: "PENGATURAN NOTA"),
-              // Menggunakan widget placeholder jika UpperBar2 belum diimport dengan benar
               const Padding(
                 padding: EdgeInsets.all(16.0),
                 child: Text(

@@ -1,4 +1,5 @@
 import 'package:app_laundry/Screens/detailLaporanLayanan.dart';
+import 'package:app_laundry/Screens/rincianPesanan.dart';
 import 'package:app_laundry/Services/orderDetail_service.dart';
 import 'package:app_laundry/Services/orderStatus_service.dart';
 import 'package:app_laundry/Services/order_service.dart';
@@ -259,7 +260,7 @@ class _PesananScreenState extends State<PesananScreen> {
         final totalPrice = order['total_harga']?.toString() ?? '0';
         final receipt = order['receipt']?.toString();
         
-        final paymentStatus = transaction?['status_transaksi'] ?? 'Belum Bayar';
+        final paymentStatus = transaction?['status_pembayaran'] ?? 'Belum Bayar';
         final paymentType = transaction?['jenis_pembayaran'] ?? '-';
         final paymentText = "$paymentStatus ${paymentType != '-' ? '• $paymentType' : ''}";
 
@@ -300,7 +301,7 @@ class _PesananScreenState extends State<PesananScreen> {
       onTap: () {
         Navigator.push(
           context, 
-          MaterialPageRoute(builder: (context) => const DetailLaporanLayananScreen()),
+          MaterialPageRoute(builder: (context) => RincianPesananScreen(store_id: widget.selectedStoreId!, order_id: orderId)),
         );
       },
       child: Card(
@@ -369,7 +370,7 @@ class _PesananScreenState extends State<PesananScreen> {
                   ),
                   Text(
                     isPaid ? 
-                    "$paymentStatusText - $paymentType": paymentStatusText, 
+                    paymentStatusText: paymentStatusText, 
                     style: TextStyle(
                       color: isPaid ? Colors.green : Colors.red, 
                       fontSize: 12, 

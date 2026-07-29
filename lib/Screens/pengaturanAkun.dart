@@ -1,3 +1,4 @@
+import 'package:app_laundry/Services/auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:app_laundry/Widgets/customUpperBarNoMenu.dart'; 
 
@@ -18,6 +19,33 @@ class _PengaturanAkunScreenState extends State<PengaturanAkunScreen> {
   bool _obscureOldPassword = true;
   bool _obscureNewPassword = true;
   bool _obscureConfirmPassword = true;
+
+  bool _isLoading = false;
+  final _authService = AuthService(); 
+
+  void changePassword() async {
+      setState(() {
+      _isLoading = true;
+      });
+      try{
+      await _authService.changePassword(_newPasswordController.text);
+      if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Password berhasil diubah!"), backgroundColor: Colors.green),
+          );
+          Navigator.pop(context); // Tutup halaman edit
+      }
+      }catch (e) {
+      if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Password tidak berhasil diubah, error: $e"), backgroundColor: Colors.red),
+          );
+      }
+      setState(() {
+          _isLoading = false;
+      });
+      }
+  }
 
   @override
   void dispose() {
@@ -116,25 +144,50 @@ class _PengaturanAkunScreenState extends State<PengaturanAkunScreen> {
                   width: double.infinity,
                   height: 48,
                   child: ElevatedButton(
-                    onPressed: () {
-                      // PERBAIKAN: Memanggil variabel controller password yang benar secara aman
-                      print("Password Lama: ${_passwordController.text}");
-                      print("Password Baru: ${_newPasswordController.text}");
-                      print("Konfirmasi: ${_cNewPasswordController.text}");
+                    onPressed: _isLoading ? null: () {
+                        if (_passwordController.text.trim().isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text("Nama customer tidak boleh kosong!")),
+                        );
+                        return;
+                        }else if (_newPasswordController.text.trim().isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text("Alamat customer tidak boleh kosong!")),
+                        );
+                        return;
+                        }else if (_cNewPasswordController.text.trim().isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text("Nomor telepon tidak boleh kosong!")),
+                        );
+                        return;
+                        }
+                        else if (_cNewPasswordController.text != _newPasswordController.text) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text("Password dan Confirm Password harus sama!!!")),
+                        );
+                        return;
+                        }
+                        changePassword();
                     }, 
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.amberAccent,
-                      shape: RoundedRectangleBorder(
+                        backgroundColor: Colors.amberAccent,
+                        shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
-                      ),
+                        ),
                     ),
-                    child: const Text(
-                      "Ubah Password",
-                      style: TextStyle(
-                        color: Colors.black87,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
+                    child: _isLoading? 
+                    const SizedBox(
+                        height: 20, 
+                        width: 20, 
+                        child: CircularProgressIndicator(
+                        strokeWidth: 2, 
+                        color: 
+                        Colors.black87,
+                        ),
+                        ) 
+                    : const Text(
+                        "Ubah Password",
+                        style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 16),
                     ),
                   ),
                 ),

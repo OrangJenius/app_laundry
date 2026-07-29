@@ -6,9 +6,10 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart'; // Jalankan 'flutter pub add intl' jika belum ada untuk format tanggal
 
 class CustomDateRangeDialogKas extends StatefulWidget {
+  final String store_id;
   final Function(DateTimeRange) onSubmit;
 
-  const CustomDateRangeDialogKas({super.key, required this.onSubmit});
+  const CustomDateRangeDialogKas({super.key, required this.onSubmit, required this.store_id});
 
   @override
   State<CustomDateRangeDialogKas> createState() => _CustomDateRangeDialogKasState();
@@ -156,7 +157,7 @@ class _CustomDateRangeDialogKasState extends State<CustomDateRangeDialogKas> {
                   onPressed: _selectedDateRange == null
                       ? null // Button dinonaktifkan jika belum pilih tanggal
                       : () {
-                          Navigator.push(context, MaterialPageRoute(builder: (contex) => DetailLaporanKasScreen()));
+                          Navigator.push(context, MaterialPageRoute(builder: (contex) => DetailLaporanKasScreen(date: _selectedDateRange!, store_id: widget.store_id,)));
                         },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.amberAccent,
@@ -325,7 +326,7 @@ class _CustomDateRangeDialogPesananState extends State<CustomDateRangeDialogPesa
                   onPressed: _selectedDateRange == null
                       ? null // Button dinonaktifkan jika belum pilih tanggal
                       : () {
-                          Navigator.push(context, MaterialPageRoute(builder: (contex) => DetailLaporanPesananScreen()));
+                          Navigator.push(context, MaterialPageRoute(builder: (contex) => DetailLaporanPesananScreen(date: _selectedDateRange!)));
                         },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.amberAccent,
@@ -494,7 +495,7 @@ class _CustomDateRangeDialogPelangganState extends State<CustomDateRangeDialogPe
                   onPressed: _selectedDateRange == null
                       ? null // Button dinonaktifkan jika belum pilih tanggal
                       : () {
-                          Navigator.push(context, MaterialPageRoute(builder: (contex) => DetailLaporanPelangganScreen()));
+                          Navigator.push(context, MaterialPageRoute(builder: (contex) => DetailLaporanPelangganScreen(date: _selectedDateRange!)));
                         },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.amberAccent,
@@ -662,7 +663,7 @@ class _CustomDateRangeDialogLayananState extends State<CustomDateRangeDialogLaya
                   onPressed: _selectedDateRange == null
                       ? null // Button dinonaktifkan jika belum pilih tanggal
                       : () {
-                          Navigator.push(context, MaterialPageRoute(builder: (contex) => DetailLaporanLayananScreen()));
+                          Navigator.push(context, MaterialPageRoute(builder: (contex) => DetailLaporanLayananScreen(date: _selectedDateRange!)));
                         },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.amberAccent,

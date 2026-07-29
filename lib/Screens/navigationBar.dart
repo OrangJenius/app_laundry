@@ -40,13 +40,14 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       HomeScreen(
         selectedStoreId: _currentSelectedStoreId,
         onStoreChanged: _handleStoreChanged,
+        owner_id: widget.owner_id,
       ),
       PesananScreen(selectedStoreId: _currentSelectedStoreId,
         onStoreChanged: _handleStoreChanged,), // Siap menerima filter toko
       LaporanScreen(selectedStoreId: _currentSelectedStoreId,
         onStoreChanged: _handleStoreChanged,), // Siap menerima filter toko
       SettingsScreen(selectedStoreId: _currentSelectedStoreId,
-        onStoreChanged: _handleStoreChanged,),
+        onStoreChanged: _handleStoreChanged, owner_id: widget.owner_id),
     ];
   }
 

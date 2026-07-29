@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:app_laundry/Widgets/customUpperBarNoMenu.dart'; 
 
 class DetailLaporanPesananScreen extends StatefulWidget {
-  const DetailLaporanPesananScreen({super.key});
+  final DateTimeRange date;
+  const DetailLaporanPesananScreen({super.key, required this.date});
 
   @override
   State<DetailLaporanPesananScreen> createState() => _DetailLaporanPesananScreenState();

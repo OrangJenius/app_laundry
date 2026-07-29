@@ -17,6 +17,19 @@ class OrderStatusService {
       rethrow; 
     }
   }
+  Future<List<dynamic>> fetchOrderStatus2(String order_id) async {
+    try {
+      final List<dynamic> data = await _supabase
+          .from('order_status') // Your table name
+          .select()
+          .eq('order_id', order_id);
+          
+      return data;
+    } catch (e) {
+      print('Error fetching Order: $e');
+      rethrow; 
+    }
+  }
   Future<List<dynamic>> fetchOrderStatusByOrderIds(List<String> orderIds) async {
     if (orderIds.isEmpty) return [];
     
@@ -65,12 +78,12 @@ class OrderStatusService {
       rethrow;
     }
   }
-    Future<void> deleteOrderStatus(String id, OrderStatusModel Order) async {
+    Future<void> deleteOrderStatus(String id) async {
     try {
       await _supabase
           .from('order_status')
           .delete()
-          .eq('id', id);
+          .eq('order_id', id);
     } catch (e) {
       print('Error updating Order: $e');
       rethrow;

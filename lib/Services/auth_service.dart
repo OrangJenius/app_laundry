@@ -60,6 +60,14 @@ class AuthService {
     );
   }
 
+  Future<UserResponse> changePassword(String newPass) async {
+    return await _supabase.auth.updateUser(
+      UserAttributes(
+        password: newPass,
+      ),
+    );
+  }
+
   Future<void> signOut() async {
     await _supabase.auth.signOut();
   }

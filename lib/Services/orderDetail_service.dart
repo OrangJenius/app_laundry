@@ -8,7 +8,7 @@ class OrderDetailService {
     try {
       final List<dynamic> data = await _supabase
           .from('order_detail') // Your table name
-          .select()
+          .select('*, service(*, duration(*), unit(*))')
           .eq('order_id', order_id);
           
       return data.map((json) => OrderDetailModel.fromMap(json)).toList();
@@ -17,8 +17,19 @@ class OrderDetailService {
       rethrow; 
     }
   }
-  // orderDetail_service.dart
-// orderDetail_service.dart
+  Future<List<dynamic>> fetchOrderDetail2(String order_id) async {
+    try {
+      final List<dynamic> data = await _supabase
+          .from('order_detail') // Your table name
+          .select('*, service(*, duration(*), unit(*))')
+          .eq('order_id', order_id);
+          
+      return data;
+    } catch (e) {
+      print('Error fetching Order: $e');
+      rethrow; 
+    }
+  }
   Future<List<dynamic>> fetchOrderDetailByOrderIds(List<dynamic> orderIds) async {
     if (orderIds.isEmpty) return [];
 
@@ -75,12 +86,12 @@ class OrderDetailService {
       rethrow;
     }
   }
-    Future<void> deleteOrderDetail(String id, OrderDetailModel Order) async {
+    Future<void> deleteOrderDetail(String id) async {
     try {
       await _supabase
           .from('order_detail')
           .delete()
-          .eq('id', id);
+          .eq('order_id', id);
     } catch (e) {
       print('Error updating Order: $e');
       rethrow;

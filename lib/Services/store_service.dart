@@ -1,5 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:app_laundry/Models/StoreModel.dart';
+import 'package:app_laundry/Models/storeModel.dart';
 
 class StoreService {
   final _supabase = Supabase.instance.client;

@@ -1,10 +1,16 @@
+// ignore_for_file: public_member_api_docs, sort_constructors_first
+import 'package:flutter/material.dart';
+
 import 'package:app_laundry/Screens/addOutlet.dart';
 import 'package:app_laundry/Screens/editOutlet.dart';
-import 'package:flutter/material.dart';
-import 'package:app_laundry/Widgets/customUpperBarNoMenu.dart'; 
+import 'package:app_laundry/Widgets/customUpperBarNoMenu.dart';
 
 class PengaturanOutletScreen extends StatefulWidget {
-  const PengaturanOutletScreen({super.key});
+  const PengaturanOutletScreen({
+    super.key,
+    required this.owner_id,
+  });
+  final String owner_id;
 
   @override
   _PengaturanOutletScreenState createState() => _PengaturanOutletScreenState();
@@ -31,7 +37,7 @@ class _PengaturanOutletScreenState extends State<PengaturanOutletScreen> {
                     onPressed: () {
                       Navigator.push(
                         context, 
-                        MaterialPageRoute(builder: (context) => AddOutletScreen()),
+                        MaterialPageRoute(builder: (context) => AddOutletScreen(owner_id: widget.owner_id,)),
                       );
                     }, 
                     style: ElevatedButton.styleFrom(

@@ -214,10 +214,10 @@ class _CustomCustomerState extends State<CustomCustomer> {
                   Expanded(
                     child: ElevatedButton.icon(
                       onPressed: () {
-                        Navigator.push(
-                          context, 
-                          MaterialPageRoute(builder: (context) => DetailLaporanPesananScreen()),
-                        );
+                        // Navigator.push(
+                        //   context, 
+                        //   MaterialPageRoute(builder: (context) => DetailLaporanPesananScreen()),
+                        // );
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.amber,

@@ -1,5 +1,5 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
-import 'package:app_laundry/Models/StoreModel.dart';
+import 'package:app_laundry/Models/storeModel.dart';
 import 'package:app_laundry/Services/store_service.dart';
 import 'package:app_laundry/Widgets/customUpperBarNoMenu.dart';
 import 'package:flutter/material.dart';
@@ -22,9 +22,7 @@ class _StartConfigScreenState extends State<StartConfigScreen> {
   bool _isLoading = false;
   final _storeService = StoreService();
 
-  @override
-
-void addStore() async {
+  void addStore() async {
     setState(() {
       _isLoading = true;
     });

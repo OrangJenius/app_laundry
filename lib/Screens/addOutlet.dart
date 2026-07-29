@@ -1,7 +1,13 @@
+import 'package:app_laundry/Models/storeModel.dart';
+import 'package:app_laundry/Screens/navigationBar.dart';
+import 'package:app_laundry/Services/store_service.dart';
 import 'package:flutter/material.dart';
 import 'package:app_laundry/Widgets/customUpperBarNoMenu.dart';
 
 class AddOutletScreen extends StatefulWidget {
+  final String owner_id;
+
+  const AddOutletScreen({super.key, required this.owner_id});
   @override
   _AddOutletScreenState createState() => _AddOutletScreenState();
 }
@@ -11,6 +17,33 @@ class _AddOutletScreenState extends State<AddOutletScreen> {
   final TextEditingController _namaController = TextEditingController();
   final TextEditingController _alamatController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
+  bool _isLoading = false;
+  final _storeService = StoreService();
+
+  void addStore() async {
+    setState(() {
+      _isLoading = true;
+    });
+    final newStore = StoreModel(owner_id: widget.owner_id, store_name: _namaController.text, address: _alamatController.text, phone_number: _phoneController.text);
+    try{
+    await _storeService.addStore(newStore);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Data berhasil ditambahkan!"), backgroundColor: Colors.green),
+        );
+        Navigator.pop(context);
+      }
+    }catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Data tidak berhasil ditambahkan, error: $e"), backgroundColor: Colors.red),
+        );
+      }
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -115,23 +148,44 @@ class _AddOutletScreenState extends State<AddOutletScreen> {
                   width: double.infinity, // Membuat tombol full-width agar lebih modern
                   height: 48, // Mengatur tinggi tombol agar pas di jari
                   child: ElevatedButton(
-                    onPressed: () {
-                      // Logika ketika data ditambahkan
-                      print("Nama: ${_namaController.text}");
+                    onPressed: _isLoading ? null: () {
+                      if (_namaController.text.trim().isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Nama customer tidak boleh kosong!")),
+                        );
+                        return;
+                      }else if (_alamatController.text.trim().isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Alamat customer tidak boleh kosong!")),
+                        );
+                        return;
+                      }else if (_phoneController.text.trim().isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Nomor telepon tidak boleh kosong!")),
+                        );
+                        return;
+                      }
+                      addStore();
                     }, 
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.amberAccent,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8), // Sudut tombol agak melengkung
+                        borderRadius: BorderRadius.circular(8),
                       ),
                     ),
-                    child: Text(
+                    child: _isLoading? 
+                    const SizedBox(
+                      height: 20, 
+                      width: 20, 
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2, 
+                        color: 
+                        Colors.black87,
+                        ),
+                      ) 
+                    : const Text(
                       "Tambahkan",
-                      style: TextStyle(
-                        color: Colors.black87,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
+                      style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 16),
                     ),
                   ),
                 ),

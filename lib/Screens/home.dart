@@ -15,11 +15,13 @@ import 'package:flutter/material.dart';
 class HomeScreen extends StatefulWidget {
   final String? selectedStoreId;
   final ValueChanged<String?> onStoreChanged;
+  final String owner_id;
 
   const HomeScreen({
     super.key,
     required this.selectedStoreId,
-    required this.onStoreChanged,
+    required this.onStoreChanged, 
+    required this.owner_id,
   });
 
   @override
@@ -111,7 +113,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           onPressed: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (context) => AddOutletScreen()),
+                              MaterialPageRoute(builder: (context) => AddOutletScreen(owner_id: widget.owner_id,)),
                             );
                           },
                         ),

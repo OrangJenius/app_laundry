@@ -22,27 +22,20 @@ class OrderService {
   Future<List<dynamic>> fetchOrder(String storeId) async {
     final response = await _supabase
         .from('order')
-        .select('*, customer(nama), duration(duration_name)')
+        .select('*, customer(nama), duration(duration_name), store(store_name)')
         .eq('store_id', storeId)
         .order('created_at', ascending: false);
         
     return response;
   }
-  // Future<List<dynamic>> fetchOrderNow(String storeId, DateTime time) async {
-  //   // 1. Format the target date to 'YYYY-MM-DD'
-  //   // Ensure you use UTC or Local time depending on how your DB stores data
-  //   final String dateString = "${time.year}-${time.month.toString().padLeft(2, '0')}-${time.day.toString().padLeft(2, '0')}";
-
-  //   final response = await _supabase
-  //       .from('order')
-  //       .select('*, customer(nama), duration(duration_name)')
-  //       .eq('store_id', storeId)
-  //       // 2. Cast created_at to a date string comparison
-  //       .eq('created_at::date', dateString); 
+  Future<List<dynamic>> fetchOrderById(String order_id) async {
+    final response = await _supabase
+        .from('order')
+        .select('*, customer(*), duration(duration_name), store(store_name), profiles(*), parfum(nama_parfum), antar_jemput(jarak)')
+        .eq('id', order_id);
         
-  //   return response;
-  // }
-
+    return response;
+  }
   // order_service.dart
   Future<List<dynamic>> fetchOrderNow(String storeId, DateTime date) async {
     final startOfDay = DateTime(date.year, date.month, date.day).toIso8601String();
@@ -75,6 +68,7 @@ class OrderService {
       rethrow;
     }
   }
+
   Future<OrderModel> addOrder(OrderModel order) async {
     try {
       final response = await _supabase
@@ -101,7 +95,7 @@ class OrderService {
       rethrow;
     }
   }
-    Future<void> deleteOrder(String id, OrderModel Order) async {
+    Future<void> deleteOrder(String id) async {
     try {
       await _supabase
           .from('order')
