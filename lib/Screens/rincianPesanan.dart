@@ -54,6 +54,83 @@ class _RincianPesananScreenState extends State<RincianPesananScreen> {
     _transaksiFuture = transaksiService.fetchTransaksi2(widget.order_id);
   }
 
+  void _showPaymentMethodDialog() {
+    String selectedMethod = caraBayar;
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12.0),
+              ),
+              title: const Text(
+                "Pilih Metode Pembayaran",
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  RadioListTile<String>(
+                    title: const Text("Tunai"),
+                    value: "Tunai",
+                    groupValue: selectedMethod,
+                    onChanged: (value) {
+                      if (value != null) {
+                        setDialogState(() => selectedMethod = value);
+                      }
+                    },
+                  ),
+                  RadioListTile<String>(
+                    title: const Text("Transfer Bank"),
+                    value: "Non Tunai",
+                    groupValue: selectedMethod,
+                    onChanged: (value) {
+                      if (value != null) {
+                        setDialogState(() => selectedMethod = value);
+                      }
+                    },
+                  ),
+                  RadioListTile<String>(
+                    title: const Text("QRIS"),
+                    value: "Non Tunai",
+                    groupValue: selectedMethod,
+                    onChanged: (value) {
+                      if (value != null) {
+                        setDialogState(() => selectedMethod = value);
+                      }
+                    },
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text("Batal", style: TextStyle(color: Colors.grey)),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    setState(() {
+                      caraBayar = selectedMethod;
+                    });
+                    updateTransaksi();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.amber,
+                    foregroundColor: Colors.black,
+                  ),
+                  child: const Text("Bayar Sekarang"),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   void updateStatus(String nextStatus) async {
     final String? userID = supabase.auth.currentUser?.id;
     if (userID == null) return;
@@ -673,8 +750,8 @@ class _RincianPesananScreenState extends State<RincianPesananScreen> {
                           confirmationModal(
                             title: "Konfirmasi Pembayaran",
                             message:
-                                "Apakah Anda yakin ingin mengubah status pembayaran menjadi 'Lunas (Tunai)'?",
-                            onConfirm: updateTransaksi,
+                                "Apakah Anda yakin ingin mengubah status pembayaran menjadi $caraBayar'?",
+                            onConfirm: _showPaymentMethodDialog,
                           );
                         },
                         style: ElevatedButton.styleFrom(
