@@ -17,6 +17,20 @@ class StoreService {
       rethrow; 
     }
   }
+  Future<String> fetchStoreName(String id) async{
+    try{
+      final data = await _supabase
+        .from('store')
+        .select()
+        .eq('id', id)
+        .single();
+      final res = StoreModel.fromMap(data);
+      return res.store_name!;
+    }catch(e){
+      print('Error fetching Store: $e');
+      rethrow;
+    }
+  }
   Future<StoreModel?> fetchStoreWithId(String id) async {
     try {
       final data = await _supabase

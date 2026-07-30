@@ -395,7 +395,7 @@ class _LaporanScreenState extends State<LaporanScreen> {
                 title: "Laporan Pesanan",
                 subtitle: "Laporan Data Pesanan",
                 dialog: CustomDateRangeDialogPesanan(
-                  onSubmit: (DateTimeRange periode) {},
+                  onSubmit: (DateTimeRange periode) {}, store_id: widget.selectedStoreId!,
                 ),
               ),
               _buildMenuLaporan(
@@ -403,7 +403,7 @@ class _LaporanScreenState extends State<LaporanScreen> {
                 title: "Analisa Pelanggan",
                 subtitle: "Analisa Data Pelanggan",
                 dialog: CustomDateRangeDialogPelanggan(
-                  onSubmit: (DateTimeRange periode) {},
+                  onSubmit: (DateTimeRange periode) {}, store_id: widget.selectedStoreId!,
                 ),
               ),
               _buildMenuLaporan(
@@ -411,7 +411,7 @@ class _LaporanScreenState extends State<LaporanScreen> {
                 title: "Laporan Layanan",
                 subtitle: "Analisa Data Layanan",
                 dialog: CustomDateRangeDialogLayanan(
-                  onSubmit: (DateTimeRange periode) {},
+                  onSubmit: (DateTimeRange periode) {}, store_id: widget.selectedStoreId!,
                 ),
               ),
             ],

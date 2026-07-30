@@ -177,8 +177,9 @@ class _CustomDateRangeDialogKasState extends State<CustomDateRangeDialogKas> {
 
 class CustomDateRangeDialogPesanan extends StatefulWidget {
   final Function(DateTimeRange) onSubmit;
+  final String store_id;
 
-  const CustomDateRangeDialogPesanan({super.key, required this.onSubmit});
+  const CustomDateRangeDialogPesanan({super.key, required this.onSubmit, required this.store_id});
 
   @override
   State<CustomDateRangeDialogPesanan> createState() => _CustomDateRangeDialogPesananState();
@@ -326,7 +327,7 @@ class _CustomDateRangeDialogPesananState extends State<CustomDateRangeDialogPesa
                   onPressed: _selectedDateRange == null
                       ? null // Button dinonaktifkan jika belum pilih tanggal
                       : () {
-                          Navigator.push(context, MaterialPageRoute(builder: (contex) => DetailLaporanPesananScreen(date: _selectedDateRange!)));
+                          Navigator.push(context, MaterialPageRoute(builder: (contex) => DetailLaporanPesananScreen(date: _selectedDateRange!, store_id: widget.store_id,)));
                         },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.amberAccent,
@@ -346,8 +347,9 @@ class _CustomDateRangeDialogPesananState extends State<CustomDateRangeDialogPesa
 
 class CustomDateRangeDialogPelanggan extends StatefulWidget {
   final Function(DateTimeRange) onSubmit;
+  final String store_id;
 
-  const CustomDateRangeDialogPelanggan({super.key, required this.onSubmit});
+  const CustomDateRangeDialogPelanggan({super.key, required this.onSubmit, required this.store_id});
 
   @override
   State<CustomDateRangeDialogPelanggan> createState() => _CustomDateRangeDialogPelangganState();
@@ -495,7 +497,7 @@ class _CustomDateRangeDialogPelangganState extends State<CustomDateRangeDialogPe
                   onPressed: _selectedDateRange == null
                       ? null // Button dinonaktifkan jika belum pilih tanggal
                       : () {
-                          Navigator.push(context, MaterialPageRoute(builder: (contex) => DetailLaporanPelangganScreen(date: _selectedDateRange!)));
+                          Navigator.push(context, MaterialPageRoute(builder: (contex) => DetailLaporanPelangganScreen(date: _selectedDateRange!, store_id: widget.store_id,)));
                         },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.amberAccent,
@@ -514,8 +516,9 @@ class _CustomDateRangeDialogPelangganState extends State<CustomDateRangeDialogPe
 }
 class CustomDateRangeDialogLayanan extends StatefulWidget {
   final Function(DateTimeRange) onSubmit;
+  final String store_id;
 
-  const CustomDateRangeDialogLayanan({super.key, required this.onSubmit});
+  const CustomDateRangeDialogLayanan({super.key, required this.onSubmit, required this.store_id});
 
   @override
   State<CustomDateRangeDialogLayanan> createState() => _CustomDateRangeDialogLayananState();
@@ -663,7 +666,7 @@ class _CustomDateRangeDialogLayananState extends State<CustomDateRangeDialogLaya
                   onPressed: _selectedDateRange == null
                       ? null // Button dinonaktifkan jika belum pilih tanggal
                       : () {
-                          Navigator.push(context, MaterialPageRoute(builder: (contex) => DetailLaporanLayananScreen(date: _selectedDateRange!)));
+                          Navigator.push(context, MaterialPageRoute(builder: (contex) => DetailLaporanLayananScreen(date: _selectedDateRange!, store_id: widget.store_id)));
                         },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.amberAccent,

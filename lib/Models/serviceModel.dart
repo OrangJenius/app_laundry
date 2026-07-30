@@ -67,7 +67,7 @@ class ServiceModel {
     return ServiceModel(
       id: map['id']?.toString() as String?,
       service_name: map['service_name'] as String,
-      price: map['price'].toString(),
+      price: map['price'].toString() as String,
       duration_id: map['duration_id']?.toString() as String,
       unit_id: map['unit_id']?.toString() as String,
       store_id: map['store_id'] as String,

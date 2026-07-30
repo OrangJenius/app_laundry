@@ -65,6 +65,25 @@ class OrderDetailService {
       rethrow;
     }
   }
+  Future<List<dynamic>> fetchOrderDetailByStoreAndDate(
+      String storeId, DateTime startDate, DateTime endDate) async {
+    try {
+      final response = await _supabase
+          .from('order_detail')
+          .select('''
+            *,
+            order!inner(store_id, created_at)
+          ''')
+          .eq('order.store_id', storeId)
+          .gte('order.created_at', startDate.toIso8601String())
+          .lte('order.created_at', endDate.toIso8601String());
+
+      return response as List<dynamic>;
+    } catch (e) {
+      print('Error fetching Order Details by Store & Date: $e');
+      rethrow;
+    }
+  }
   Future<void> addOrderDetail(OrderDetailModel Order) async {
     try {
       await _supabase

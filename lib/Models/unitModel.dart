@@ -35,7 +35,7 @@ class UnitModel {
 
   factory UnitModel.fromMap(Map<String, dynamic> map) {
     return UnitModel(
-      id: map['id'] != null ? map['id'] as String : null,
+      id: map['id'] != null ? map['id'].toString() as String : null,
       unit_name: map['unit_name'] as String,
       unit_type: map['unit_type'] as String,
     );

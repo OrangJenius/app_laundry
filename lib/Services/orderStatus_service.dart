@@ -32,8 +32,6 @@ class OrderStatusService {
   }
   Future<List<dynamic>> fetchOrderStatusByOrderIds(List<String> orderIds) async {
     if (orderIds.isEmpty) return [];
-    
-    // Note: Using 'order_di' as your database column name
     return await _supabase
         .from('order_status')
         .select('*')

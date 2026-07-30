@@ -147,17 +147,17 @@ class _PengaturanAkunScreenState extends State<PengaturanAkunScreen> {
                     onPressed: _isLoading ? null: () {
                         if (_passwordController.text.trim().isEmpty) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text("Nama customer tidak boleh kosong!")),
+                            const SnackBar(content: Text("Password tidak boleh kosong!")),
                         );
                         return;
                         }else if (_newPasswordController.text.trim().isEmpty) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text("Alamat customer tidak boleh kosong!")),
+                            const SnackBar(content: Text("Password baru tidak boleh kosong!")),
                         );
                         return;
                         }else if (_cNewPasswordController.text.trim().isEmpty) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text("Nomor telepon tidak boleh kosong!")),
+                            const SnackBar(content: Text("Konfirmasi Password tidak boleh kosong!")),
                         );
                         return;
                         }

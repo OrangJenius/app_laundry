@@ -7,7 +7,7 @@ class ProfileModel {
   final String? store_id;
   final String? role;
   final String? cashier_id;
-
+  final String? cashier_name;
 
   ProfileModel(
     this.id,
@@ -15,6 +15,7 @@ class ProfileModel {
     this.store_id,
     this.role,
     this.cashier_id,
+    this.cashier_name,
   );
 
   ProfileModel copyWith({
@@ -23,6 +24,7 @@ class ProfileModel {
     String? store_id,
     String? role,
     String? cashier_id,
+    String? cashier_name,
   }) {
     return ProfileModel(
       id ?? this.id,
@@ -30,6 +32,7 @@ class ProfileModel {
       store_id ?? this.store_id,
       role ?? this.role,
       cashier_id ?? this.cashier_id,
+      cashier_name ?? this.cashier_name
     );
   }
 
@@ -40,6 +43,7 @@ class ProfileModel {
       'store_id': store_id,
       'role': role,
       'cashier_id': cashier_id,
+      'cashier_name': cashier_name
     };
   }
 
@@ -50,6 +54,7 @@ class ProfileModel {
       map['store_id'] != null ? map['store_id'] as String : null,
       map['role'] != null ? map['role'] as String : null,
       map['cashier_id'] != null ? map['cashier_id'] as String : null,
+      map['cashier_name'] != null ? map['cashier_name'] as String : null,
     );
   }
 
@@ -59,7 +64,7 @@ class ProfileModel {
 
   @override
   String toString() {
-    return 'ProfileModel(id: $id, owner_id: $owner_id, store_id: $store_id, role: $role, cashier_id: $cashier_id)';
+    return 'ProfileModel(id: $id, owner_id: $owner_id, store_id: $store_id, role: $role, cashier_id: $cashier_id, cashier_name: $cashier_name)';
   }
 
   @override
@@ -71,7 +76,8 @@ class ProfileModel {
       other.owner_id == owner_id &&
       other.store_id == store_id &&
       other.role == role &&
-      other.cashier_id == cashier_id;
+      other.cashier_id == cashier_id &&
+      other.cashier_name == cashier_name;
   }
 
   @override
@@ -80,6 +86,7 @@ class ProfileModel {
       owner_id.hashCode ^
       store_id.hashCode ^
       role.hashCode ^
-      cashier_id.hashCode;
+      cashier_id.hashCode ^
+      cashier_name.hashCode;
   }
 }

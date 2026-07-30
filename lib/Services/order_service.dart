@@ -69,6 +69,35 @@ class OrderService {
     }
   }
 
+  Future<List<Map<String, dynamic>>> fetchOrdersByStoreAndDate(
+    String storeId, 
+    DateTime startDate, 
+    DateTime endDate
+  ) async {
+    try {
+      final startIso = DateTime(startDate.year, startDate.month, startDate.day, 0, 0, 0).toIso8601String();
+      final endIso = DateTime(endDate.year, endDate.month, endDate.day, 23, 59, 59).toIso8601String();
+
+      final response = await _supabase
+          .from('order')
+          .select('''
+          *,
+          customer!customer_id(*),
+          antar_jemput!antar_jemput_id(*),
+          profiles!profile_id(*)
+          ''')
+          .eq('store_id', storeId)
+          .gte('created_at', startIso)
+          .lte('created_at', endIso);
+      print("Responseeeeee: $response");
+
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      print('Error fetching orders by date range: $e');
+      rethrow;
+    }
+  }
+
   Future<OrderModel> addOrder(OrderModel order) async {
     try {
       final response = await _supabase
