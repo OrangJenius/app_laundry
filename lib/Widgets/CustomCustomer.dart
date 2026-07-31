@@ -1,12 +1,14 @@
 import 'package:app_laundry/Screens/detailLaporanPesanan.dart';
 import 'package:app_laundry/Screens/editCustomer.dart';
 import 'package:app_laundry/Screens/rincianPesanan.dart';
+import 'package:app_laundry/Screens/riwayatPesanan.dart';
 import 'package:app_laundry/Services/customer_service.dart';
 import 'package:flutter/material.dart';
 
 // --- REUSABLE CUSTOM CUSTOMER CARD WIDGET ---
 class CustomCustomer extends StatefulWidget {
   final IconData icon;
+  final String store_id;
   final String id;
   final String name;
   final VoidCallback? onRefresh;
@@ -20,7 +22,8 @@ class CustomCustomer extends StatefulWidget {
     required this.icon,
     required this.name,
     required this.phone_number,
-    required this.address,
+    required this.address, 
+    required this.store_id,
   });
 
   @override
@@ -214,10 +217,10 @@ class _CustomCustomerState extends State<CustomCustomer> {
                   Expanded(
                     child: ElevatedButton.icon(
                       onPressed: () {
-                        // Navigator.push(
-                        //   context, 
-                        //   MaterialPageRoute(builder: (context) => DetailLaporanPesananScreen()),
-                        // );
+                        Navigator.push(
+                          context, 
+                          MaterialPageRoute(builder: (context) => RiwayatPesananScreen(store_id: widget.store_id, customer_Id: widget.id,)),
+                        );
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.amber,

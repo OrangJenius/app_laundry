@@ -161,6 +161,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
                         phone_number: customer.phoneNumber, // contoh: customer.phone
                         address: customer.alamat, 
                         id: customer.id,
+                        store_id: widget.store_id!,
                       );
                     },
                   );
