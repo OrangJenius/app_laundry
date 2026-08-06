@@ -43,11 +43,16 @@ class ProfileService {
       rethrow;
     }
   }
-  Future<void> editProfile(String id, ProfileModel profile) async {
+  Future<void> editProfile(String id, String owner_id, String role) async {
     try {
       await _supabase
           .from('profiles')
-          .update(profile.toMap())
+          .update(
+            {
+              'owner_id': owner_id,
+              'role': role
+            }
+          )
           .eq('id', id);
     } catch (e) {
       print('Error updating Profile: $e');

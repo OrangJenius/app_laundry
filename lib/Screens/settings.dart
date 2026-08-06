@@ -109,7 +109,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 title: "Pengaturan Kasir",
                 subtitle: "Tambah, ubah, hapus Kasir",
                 onTap: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => PengaturanKasirScreen()));
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => PengaturanKasirScreen(store_id: widget.selectedStoreId!, owner_id: widget.owner_id,)));
                 },
               ),
               CustomCardMenu(

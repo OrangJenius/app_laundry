@@ -1,14 +1,59 @@
+// ignore_for_file: public_member_api_docs, sort_constructors_first
+import 'package:app_laundry/Models/kasirModel.dart';
+import 'package:app_laundry/Services/kasir_service.dart';
 import 'package:flutter/material.dart';
+
 import 'package:app_laundry/Widgets/customUpperBarNoMenu.dart';
 
 class EditKasirScreen extends StatefulWidget {
+  final String nama;
+  final String id;
+  final String store_id;
+  const EditKasirScreen({
+    super.key,
+    required this.nama,
+    required this.id,
+    required this.store_id,
+  });
   @override
   _EditKasirScreenState createState() => _EditKasirScreenState();
 }
 
 class _EditKasirScreenState extends State<EditKasirScreen> {
+  final kasirService = KasirService();
   // Controller untuk mengambil data input (Opsional, tapi sangat disarankan)
   final TextEditingController _namaController = TextEditingController();
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _namaController.text = widget.nama;
+  }
+  void editKasir() async{
+    setState(() {
+      _isLoading = true;
+    });
+    final newKasir = KasirModel(cashier_name: _namaController.text, store_id: widget.store_id);
+    try{
+      await kasirService.editCashier(widget.id, newKasir);
+      if(mounted){
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Data berhasil diubah!"), backgroundColor: Colors.green,)
+        );
+        Navigator.pop(context);
+      }
+    }catch(e){
+      if(mounted){
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Data gagal diubah, error: $e"), backgroundColor: Colors.red,)
+        );
+      }
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -19,7 +64,7 @@ class _EditKasirScreenState extends State<EditKasirScreen> {
         child: SingleChildScrollView(
           child: Column(
             children: [
-              UpperBar2(title: "TAMBAH KASIR"),
+              UpperBar2(title: "EDIT KASIR"),
               
               // FIELD 1: Nama Kasir
               Padding(
@@ -57,9 +102,14 @@ class _EditKasirScreenState extends State<EditKasirScreen> {
                   width: double.infinity, // Membuat tombol full-width agar lebih modern
                   height: 48, // Mengatur tinggi tombol agar pas di jari
                   child: ElevatedButton(
-                    onPressed: () {
-                      // Logika ketika data ditambahkan
-                      print("Nama: ${_namaController.text}");
+                    onPressed: _isLoading? null : () {
+                      if(_namaController.text.trim().isEmpty){
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text("Nama kasir tidak boleh kosong!")),
+                        );
+                        return;
+                      }
+                      editKasir();
                     }, 
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.amberAccent,
@@ -67,7 +117,17 @@ class _EditKasirScreenState extends State<EditKasirScreen> {
                         borderRadius: BorderRadius.circular(8), // Sudut tombol agak melengkung
                       ),
                     ),
-                    child: Text(
+                    child: _isLoading?
+                    const SizedBox(
+                      height: 20, 
+                      width: 20, 
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2, 
+                        color: 
+                        Colors.black87,
+                        ),
+                      ) 
+                    : const Text(
                       "Simpan",
                       style: TextStyle(
                         color: Colors.black87,

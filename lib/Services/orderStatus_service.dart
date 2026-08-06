@@ -19,12 +19,14 @@ class OrderStatusService {
   }
   Future<List<dynamic>> fetchOrderStatus2(String order_id) async {
     try {
-      final List<dynamic> data = await _supabase
-          .from('order_status') // Your table name
-          .select()
-          .eq('order_id', order_id);
+      final response = await _supabase
+        .from('order_status')
+        .select()
+        .eq('order_id', order_id)
+        .order('created_at', ascending: false) // Order by timestamp descending
+        .limit(1); // Safely gets 1 row or null if empty
           
-      return data;
+      return response;
     } catch (e) {
       print('Error fetching Order: $e');
       rethrow; 

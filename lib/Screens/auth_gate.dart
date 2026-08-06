@@ -1,9 +1,8 @@
+import 'package:app_laundry/Screens/dashboardKasir.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:app_laundry/Screens/loginScreen.dart';
 import 'package:app_laundry/Screens/navigationBar.dart';
-import 'package:app_laundry/Screens/addOutlet.dart'; // Halaman buat toko pertama kali
-// import 'package:app_laundry/Screens/dashboardKasirScreen.dart';
 import 'package:app_laundry/Screens/startConfigScreen.dart';
 import 'package:app_laundry/Services/auth_service.dart';
 import 'package:app_laundry/Services/store_service.dart'; // Import service toko Anda
@@ -50,7 +49,7 @@ class AuthGate extends StatelessWidget {
 
               // JIKA KASIR: Langsung kunci ke dashboard kasir
               if (role == 'kasir') {
-                // return DashboardKasirScreen(storeId: storeId);
+                return DashboardKasirScreen(store_id: storeId);
               }
 
               // JIKA OWNER: Jalankan pengecekan toko via FutureBuilder kedua

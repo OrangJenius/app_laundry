@@ -207,15 +207,11 @@ class _RincianPesananScreenState extends State<RincianPesananScreen> {
 
   void cancelOrder() async {
     try {
-      await transaksiService.deleteTransaksi(widget.order_id);
-      await orderDetailService.deleteOrderDetail(widget.order_id);
-      // await orderStatusService.deleteOrderStatus(widget.order_id);
-      await orderService.deleteOrder(widget.order_id);
-
       final uid = supabase.auth.currentUser?.id;
       final profile = await ProfileService().fetchProfileWithId(uid!);
       final oID = profile?.owner_id;
-
+      final newOrder = OrderStatusModel(order_id: widget.order_id, status_order: "Batal", profile_id: uid);
+      await orderStatusService.addOrderStatus(newOrder);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -407,7 +403,7 @@ class _RincianPesananScreenState extends State<RincianPesananScreen> {
               }
             }
 
-            final String currentStatus = orderStatus['status_order'] ?? '';
+            String currentStatus = orderStatus['status_order'] ?? '';
             final String currentPembayaran =
                 transaksi['status_pembayaran'] ?? 'Belum Lunas';
 
@@ -663,6 +659,10 @@ class _RincianPesananScreenState extends State<RincianPesananScreen> {
                                   order['created_at'] ?? '', maxHours),
                             ),
                             const Divider(),
+                            if(currentStatus == "Selesai") 
+                              _buildInfoRow("Tanggal Selesai", orderStatus["created_at"]), 
+                            if(currentStatus == "Selesai") 
+                              const Divider(),
                             _buildInfoRow(
                                 "Catatan",
                                 (order['catatan'] ?? '').isEmpty
@@ -711,35 +711,34 @@ class _RincianPesananScreenState extends State<RincianPesananScreen> {
                       ),
                     ),
                   ),
-
-                  // ================= TOMBOL AKSI =================
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16.0, vertical: 4.0),
-                    child: ElevatedButton(
-                      onPressed: () {
-                        bool isReady = currentStatus.toLowerCase() == 'ready';
-                        String targetStatus = isReady ? "Selesai" : "Ready";
-                        
-                        confirmationModal(
-                          title: "Konfirmasi Status Pesanan",
-                          message:
-                              "Apakah Anda yakin ingin memperbarui status pesanan menjadi '$targetStatus'?",
-                          onConfirm: () => updateStatus(targetStatus),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.amber,
-                          foregroundColor: Colors.black),
-                      child: Text(
-                        currentStatus.toLowerCase() == 'ready'
-                            ? "Selesaikan Pesanan"
-                            : "Ubah Status Pesanan",
-                        style: const TextStyle(fontWeight: FontWeight.bold),
+                  if(currentStatus != "Selesai")
+                    // ================= TOMBOL AKSI =================
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16.0, vertical: 4.0),
+                      child: ElevatedButton(
+                        onPressed: () {
+                          bool isReady = currentStatus.toLowerCase() == 'ready';
+                          String targetStatus = isReady ? "Selesai" : "Ready";
+                          
+                          confirmationModal(
+                            title: "Konfirmasi Status Pesanan",
+                            message:
+                                "Apakah Anda yakin ingin memperbarui status pesanan menjadi '$targetStatus'?",
+                            onConfirm: () => updateStatus(targetStatus),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.amber,
+                            foregroundColor: Colors.black),
+                        child: Text(
+                          currentStatus.toLowerCase() == 'ready'
+                              ? "Selesaikan Pesanan"
+                              : "Ubah Status Pesanan",
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
                       ),
                     ),
-                  ),
-
                   // Conditionally show payment button only if NOT Lunas
                   if (currentPembayaran.toLowerCase() != 'lunas')
                     Padding(
@@ -761,25 +760,25 @@ class _RincianPesananScreenState extends State<RincianPesananScreen> {
                             style: TextStyle(fontWeight: FontWeight.bold)),
                       ),
                     ),
-
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16.0, vertical: 4.0),
-                    child: ElevatedButton(
-                      onPressed: () {
-                        confirmationModal(
-                          title: "Konfirmasi Pembatalan",
-                          message:
-                              "Apakah Anda yakin ingin Membatalkan pesanan ini?",
-                          onConfirm: cancelOrder,
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.grey[700],
-                          foregroundColor: Colors.white),
-                      child: const Text("Batalkan Pesanan"),
+                  if(currentStatus != "Selesai")
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16.0, vertical: 4.0),
+                      child: ElevatedButton(
+                        onPressed: () {
+                          confirmationModal(
+                            title: "Konfirmasi Pembatalan",
+                            message:
+                                "Apakah Anda yakin ingin Membatalkan pesanan ini?",
+                            onConfirm: cancelOrder,
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.grey[700],
+                            foregroundColor: Colors.white),
+                        child: const Text("Batalkan Pesanan"),
+                      ),
                     ),
-                  ),
                   const SizedBox(height: 16),
                 ],
               ),

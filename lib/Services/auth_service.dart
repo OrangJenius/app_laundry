@@ -1,7 +1,11 @@
+import 'package:app_laundry/Models/ownerModel.dart';
+import 'package:app_laundry/Services/owner_service.dart';
+import 'package:app_laundry/Services/profile_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AuthService {
   final SupabaseClient _supabase = Supabase.instance.client;
+  final ownerService = OwnerService();
 
   // Login normal (Owner) menggunakan Email & Password
   Future<AuthResponse> signInWithEmailPassword(String email, String password) async {
@@ -53,11 +57,46 @@ class AuthService {
   }
 
   Future<AuthResponse> signUpWithEmailPassword(String email, String password) async {
-    return await _supabase.auth.signUp(
+    final data =  await _supabase.auth.signUp(
       email: email,
       password: password,
       emailRedirectTo: 'managekos://login-callback',
     );
+    final oID = await ownerService.addowner(OwnerModel(created_at: DateTime.now().toIso8601String()));
+    await ProfileService().editProfile(data.user!.id, oID, 'owner');
+    return data;
+  }
+
+  Future<String?> signUpWithoutVerification(String email, String password) async {
+    try {
+      final response = await Supabase.instance.client.functions.invoke(
+        'unverified-user',
+        body: {
+          'email': email,
+          'password': password,
+        },
+      );
+
+      if (response.status == 200) {
+        // Parse the JSON data returned from the Edge Function
+        final Map<String, dynamic> data = response.data;
+        final String? userId = data['user_id'];
+        
+        print('Unverified user created with ID: $userId');
+        
+        // // Optional auto-login
+        // await Supabase.instance.client.auth.signInWithPassword(
+        //   email: email,
+        //   password: password,
+        // );
+
+        return userId;
+      }
+      return null;
+    } catch (error) {
+      print('Failed to create unverified user: $error');
+      return null;
+    }
   }
 
   Future<UserResponse> changePassword(String newPass) async {

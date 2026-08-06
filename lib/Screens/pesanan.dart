@@ -213,7 +213,7 @@ class _PesananScreenState extends State<PesananScreen> {
                           final belumBayarOrders = orders.where((order) {
                             final status = getLatestStatus(order['id']);
                             final trx = getTransaction(order['id']);
-                            final paymentStatus = trx?['status_transaksi'] ?? 'Belum Bayar';
+                            final paymentStatus = trx?['status_pembayaran'] ?? 'Belum Bayar';
 
                             return status == 'Selesai' && paymentStatus == 'Belum Bayar';
                           }).toList();

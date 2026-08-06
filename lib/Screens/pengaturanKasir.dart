@@ -1,10 +1,16 @@
 // import 'package:app_laundry/Screens/addKasir.dart';
 // import 'package:app_laundry/Screens/editKasir.dart';
+import 'package:app_laundry/Screens/editKasir.dart';
+import 'package:flutter/services.dart';
+import 'package:app_laundry/Screens/addKasir.dart';
+import 'package:app_laundry/Services/kasir_service.dart';
 import 'package:flutter/material.dart';
 import 'package:app_laundry/Widgets/customUpperBarNoMenu.dart'; 
 
 class PengaturanKasirScreen extends StatefulWidget {
-  const PengaturanKasirScreen({super.key});
+  final String store_id;
+  final String owner_id;
+  const PengaturanKasirScreen({super.key, required this.store_id, required this.owner_id});
 
   @override
   _PengaturanKasirScreenState createState() => _PengaturanKasirScreenState();
@@ -22,6 +28,67 @@ class _PengaturanKasirScreenState extends State<PengaturanKasirScreen> {
   bool _lihatSaldoKas = false;
   bool _mengurangiKas = false;
   bool _lihatMutasiKas = false;
+  
+  final kasirService = KasirService();
+
+  void deleteKasir(String id) async{
+    try{
+      await kasirService.deleteKasir(id);
+      if(mounted){
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Data berhasil dihapus!"), backgroundColor: Colors.green,)
+        );
+      }
+    }catch(e){
+      if(mounted){
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Data tidak berhasil dihapus, error: $e"), backgroundColor: Colors.red,)
+        );
+      }
+    }
+  }
+  void _showDeleteConfirmation(BuildContext context, String id, String name) {
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          backgroundColor: Colors.grey[900], // Menyesuaikan tema gelap aplikasi
+          title: const Text(
+            "Konfirmasi Hapus",
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+          content: Text(
+            "Apakah Anda yakin ingin menghapus kasir $name?",
+            style: const TextStyle(color: Colors.white70),
+          ),
+          actions: [
+            // Tombol Batal
+            TextButton(
+              onPressed: () {
+                Navigator.pop(dialogContext); // Menutup dialog saja
+              },
+              child: const Text(
+                "Batal",
+                style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold),
+              ),
+            ),
+            // Tombol Konfirmasi Hapus
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.pop(dialogContext); // Menutup dialog
+                deleteKasir(id);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red[700],
+                foregroundColor: Colors.white,
+              ),
+              child: const Text("Hapus", style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -41,7 +108,7 @@ class _PengaturanKasirScreenState extends State<PengaturanKasirScreen> {
                   height: 48,
                   child: ElevatedButton(
                     onPressed: () {
-                      // Navigator.push(context, MaterialPageRoute(builder: (context) => AddKasirScreen()));
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => AddKasirScreen(currentStoreId: widget.store_id, ownerId: widget.owner_id,)));
                     }, 
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.amber,
@@ -73,7 +140,7 @@ class _PengaturanKasirScreenState extends State<PengaturanKasirScreen> {
                       leading: const Icon(Icons.shield_outlined, color: Colors.amber, size: 22),
                       title: const Text(
                         "Pengaturan Hak Akses Kasir",
-                        style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w500),
+                        style: TextStyle(color: Colors.black, fontSize: 15, fontWeight: FontWeight.w500),
                       ),
                       iconColor: Colors.amber,
                       collapsedIconColor: Colors.amber,
@@ -135,72 +202,121 @@ class _PengaturanKasirScreenState extends State<PengaturanKasirScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 12),
+                            const SizedBox(height: 12),
               // =======================================================================================
 
-              // CARD: LIST DATA Kasir
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
-                child: Card(
-                  color: Colors.white,
-                  elevation: 2,
-                  child: Padding(
-                    padding: const EdgeInsets.all(12.0),
-                    child: Row(
-                      children: [
-                        const Card(
-                          color: Colors.grey,
+              FutureBuilder(
+                future: kasirService.getCashiersByStore(widget.store_id),
+                builder: (context, snapshot) { 
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(
+                      child: CircularProgressIndicator(color: Colors.amber),
+                    );
+                  }
+                  
+                  if (snapshot.hasError) {
+                    return Center(
+                      child: Text(
+                        "Gagal memuat data: ${snapshot.error}",
+                        style: const TextStyle(color: Colors.red),
+                      ),
+                    );
+                  }
+
+                  if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                    return const Center(
+                      child: Text(
+                        "Tidak ada data kasir",
+                        style: TextStyle(color: Colors.white70),
+                      ),
+                    );
+                  }
+                  final kasirList = snapshot.data!;
+                  
+                  return ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: kasirList.length,
+                    itemBuilder: (context, index){
+                      final kasir = kasirList[index];
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+                        child: Card(
+                          color: Colors.white,
+                          elevation: 2,
                           child: Padding(
-                            padding: EdgeInsets.all(4.0),
-                            child: Icon(Icons.person_2),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              "John Doe",
-                              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-                            ),
-                            const SizedBox(height: 2),
-                            const Text(
-                              "ID Kasir",
-                              style: TextStyle(color: Colors.grey, fontSize: 12),
-                            ),
-                            Row(
+                            padding: const EdgeInsets.all(12.0),
+                            child: Row(
                               children: [
-                                const Text(
-                                  "XXX-XXXXXXX",
-                                  style: TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold),
-                                ),
-                                SizedBox(
-                                  height: 24,
-                                  width: 32,
-                                  child: IconButton(
-                                    padding: EdgeInsets.zero,
-                                    onPressed: (){}, 
-                                    icon: const Icon(Icons.copy, size: 16)
+                                const Card(
+                                  color: Colors.grey,
+                                  child: Padding(
+                                    padding: EdgeInsets.all(4.0),
+                                    child: Icon(Icons.person_2),
                                   ),
-                                )
+                                ),
+                                const SizedBox(width: 8),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      kasir.cashier_name,
+                                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    const Text(
+                                      "ID Kasir",
+                                      style: TextStyle(color: Colors.grey, fontSize: 12),
+                                    ),
+                                    Row(
+                                      children: [
+                                        Text(
+                                          kasir.id!,
+                                          style: TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold),
+                                        ),
+                                        SizedBox(
+                                          height: 24,
+                                          width: 32,
+                                          child: IconButton(
+                                            padding: EdgeInsets.zero,
+                                            onPressed: () async {
+                                              await Clipboard.setData(ClipboardData(text: kasir.id!));
+                                              if (context.mounted) {
+                                                ScaffoldMessenger.of(context).showSnackBar(
+                                                  const SnackBar(content: Text("Copied to clipboard!")),
+                                                );
+                                              }
+                                            }, 
+                                            icon: const Icon(Icons.copy, size: 16)
+                                          ),
+                                        )
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                                const Spacer(),
+                                IconButton(
+                                  onPressed: () {
+                                    Navigator.push(context, MaterialPageRoute(builder: (context)=>EditKasirScreen(nama: kasir.cashier_name, store_id: widget.store_id, id: kasir.id!,)));
+                                  }, 
+                                  icon: const Icon(Icons.edit, color: Colors.blue),
+                                ),
+                                IconButton(
+                                  onPressed: () {
+                                    _showDeleteConfirmation(context, kasir.id!, kasir.cashier_name);
+                                  }, 
+                                  icon: const Icon(Icons.delete, color: Colors.red),
+                                ),
                               ],
                             ),
-                          ],
+                          ),
                         ),
-                        const Spacer(),
-                        IconButton(
-                          onPressed: () {}, 
-                          icon: const Icon(Icons.edit, color: Colors.blue),
-                        ),
-                        IconButton(
-                          onPressed: () {}, 
-                          icon: const Icon(Icons.delete, color: Colors.red),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+                      );
+                    }
+                  );
+                },
               ),
+
+              
             ],
           ),
         ),
