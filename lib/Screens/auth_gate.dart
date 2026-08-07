@@ -1,4 +1,5 @@
 import 'package:app_laundry/Screens/dashboardKasir.dart';
+import 'package:app_laundry/Screens/kasirNavigation.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:app_laundry/Screens/loginScreen.dart';
@@ -45,14 +46,15 @@ class AuthGate extends StatelessWidget {
               print('Session saat ini: $session.user.id');
               final role = profileSnapshot.data!['role'];
               final storeId = profileSnapshot.data!['store_id'];
-              final ownerId = profileSnapshot.data!['owner_id'];
 
               // JIKA KASIR: Langsung kunci ke dashboard kasir
               if (role == 'kasir') {
-                return DashboardKasirScreen(store_id: storeId);
+                final cashierId = profileSnapshot.data!['cashier_id'];
+                return KasirNavigationScreen(currentPageIndex: 0, store_id: storeId, cashier_id: cashierId,);
               }
 
               // JIKA OWNER: Jalankan pengecekan toko via FutureBuilder kedua
+              final ownerId = profileSnapshot.data!['owner_id'];
               return FutureBuilder<List<dynamic>>(
                 future: outletService.fetchStoreWithOwnerId(ownerId ?? ''),
                 builder: (context, storeSnapshot) {

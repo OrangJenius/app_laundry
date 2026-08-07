@@ -74,6 +74,25 @@ class KasirService {
       rethrow;
     }
   }
+
+    Future<KasirModel?> fetchOneCashier(String id) async {
+    try {
+      final data = await _supabase
+          .from('cashier')
+          .select()
+          .eq('id', id)
+          .maybeSingle();
+
+     if (data == null) return null;
+
+      // Langsung ubah satu Map tunggal menjadi satu objek OrderModel
+      return KasirModel.fromMap(data); 
+    } catch (e) {
+      print("Error pada KasirService.getCashiersByStore: $e");
+      rethrow;
+    }
+  }
+
   Future<void> editCashier(String id, KasirModel kasir) async {
     try {
       await _supabase

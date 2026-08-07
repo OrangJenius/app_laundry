@@ -18,8 +18,52 @@ class _CustomerScreenState extends State<CustomerScreen> {
   final _customerService = CustomerService();
   final ExpansionTileController _dropdownController = ExpansionTileController();
 
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
   // State untuk menyimpan nilai switch fitur kasir
   bool _depositPelanggan = false;
+
+  Future<List<dynamic>>? _customersFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchCustomers();
+  }
+
+  @override
+  void didUpdateWidget(covariant CustomerScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.store_id != widget.store_id) {
+      _fetchCustomers();
+    }
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _fetchCustomers() {
+    setState(() {
+      _customersFuture = _customerService.fetchCustomers(widget.store_id);
+    });
+  }
+
+  /// Returns true if the customer matches the current search query.
+  /// Matches against name and phone number.
+  bool _matchesSearch(dynamic customer) {
+    if (_searchQuery.isEmpty) return true;
+
+    final query = _searchQuery.toLowerCase();
+
+    final name = (customer.nama ?? '').toString().toLowerCase();
+    final phone = (customer.phoneNumber ?? '').toString().toLowerCase();
+
+    return name.contains(query) || phone.contains(query);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,17 +79,37 @@ class _CustomerScreenState extends State<CustomerScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
               child: Row(
                 children: [
-                  const Expanded(
+                  Expanded(
                     child: SearchBar(
+                      controller: _searchController,
                       hintText: "Cari nama/no handphone",
-                      leading: Icon(Icons.search),
-                      elevation: WidgetStatePropertyAll(1),
+                      leading: const Icon(Icons.search),
+                      elevation: const WidgetStatePropertyAll(1),
+                      trailing: _searchQuery.isNotEmpty
+                          ? [
+                              IconButton(
+                                icon: const Icon(Icons.clear),
+                                onPressed: () {
+                                  _searchController.clear();
+                                  setState(() {
+                                    _searchQuery = '';
+                                  });
+                                },
+                              ),
+                            ]
+                          : null,
+                      onChanged: (value) {
+                        setState(() {
+                          _searchQuery = value;
+                        });
+                      },
                     ),
                   ),
                   const SizedBox(width: 12),
                   ElevatedButton(
-                    onPressed: () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => AddCustomerScreen(store_id: widget.store_id,)));
+                    onPressed: () async {
+                      await Navigator.push(context, MaterialPageRoute(builder: (context) => AddCustomerScreen(store_id: widget.store_id,)));
+                      _fetchCustomers();
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.amber, 
@@ -117,7 +181,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
             // --- SECTION LIST PELANGGAN (Menggunakan FutureBuilder) ---
             Expanded(
               child: FutureBuilder<List<dynamic>>( // Menggunakan dynamic atau tipe model 'Customer' kamu
-                future: _customerService.fetchCustomers(widget.store_id),
+                future: _customersFuture,
                 builder: (context, snapshot) {
                   // 1. Kondisi saat data sedang loading/fetching
                   if (snapshot.connectionState == ConnectionState.waiting) {
@@ -146,8 +210,18 @@ class _CustomerScreenState extends State<CustomerScreen> {
                     );
                   }
 
-                  // 4. Jika data berhasil didapatkan
-                  final customers = snapshot.data!;
+                  // 4. Jika data berhasil didapatkan, terapkan filter pencarian
+                  final customers = snapshot.data!.where(_matchesSearch).toList();
+
+                  if (customers.isEmpty) {
+                    return Center(
+                      child: Text(
+                        "Tidak ditemukan pelanggan untuk \"$_searchQuery\"",
+                        style: const TextStyle(color: Colors.white70),
+                        textAlign: TextAlign.center,
+                      ),
+                    );
+                  }
 
                   return ListView.builder(
                     padding: const EdgeInsets.only(bottom: 16.0),

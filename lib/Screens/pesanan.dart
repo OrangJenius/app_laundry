@@ -1,4 +1,3 @@
-import 'package:app_laundry/Screens/detailLaporanLayanan.dart';
 import 'package:app_laundry/Screens/rincianPesanan.dart';
 import 'package:app_laundry/Services/orderDetail_service.dart';
 import 'package:app_laundry/Services/orderStatus_service.dart';
@@ -13,8 +12,8 @@ class PesananScreen extends StatefulWidget {
   final ValueChanged<String?> onStoreChanged;
 
   const PesananScreen({
-    super.key, 
-    this.selectedStoreId, 
+    super.key,
+    this.selectedStoreId,
     required this.onStoreChanged,
   });
 
@@ -27,6 +26,9 @@ class _PesananScreenState extends State<PesananScreen> {
   final orderDetailService = OrderDetailService();
   final orderStatusService = OrderStatusService();
   final transaksiService = TransaksiService();
+
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
 
   Future<List<dynamic>>? _combinedFuture;
 
@@ -44,6 +46,12 @@ class _PesananScreenState extends State<PesananScreen> {
     }
   }
 
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
   void _fetchPesanan() {
     final storeId = widget.selectedStoreId;
     if (storeId == null || storeId.isEmpty) {
@@ -57,7 +65,7 @@ class _PesananScreenState extends State<PesananScreen> {
       _combinedFuture = () async {
         // Step 1: Fetch Orders by Store ID
         final orders = await orderService.fetchOrder(storeId);
-        
+
         if (orders.isEmpty) {
           return [<dynamic>[], <dynamic>[], <dynamic>[], <dynamic>[]];
         }
@@ -77,12 +85,30 @@ class _PesananScreenState extends State<PesananScreen> {
     });
   }
 
+  /// Returns true if the order matches the current search query.
+  /// Matches against customer name, receipt number, and service/duration name.
+  bool _matchesSearch(Map<String, dynamic> order) {
+    if (_searchQuery.isEmpty) return true;
+
+    final query = _searchQuery.toLowerCase();
+
+    final customerName = (order['customer']?['nama'] ?? '').toString().toLowerCase();
+    final receipt = (order['receipt'] ?? '').toString().toLowerCase();
+    final serviceName = (order['duration']?['duration_name'] ?? '').toString().toLowerCase();
+    final orderId = (order['id'] ?? '').toString().toLowerCase();
+
+    return customerName.contains(query) ||
+        receipt.contains(query) ||
+        serviceName.contains(query) ||
+        orderId.contains(query);
+  }
+
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
       length: 3,
       child: Scaffold(
-        backgroundColor: Colors.grey[900], 
+        backgroundColor: Colors.grey[900],
         body: SafeArea(
           child: Column(
             children: [
@@ -91,16 +117,35 @@ class _PesananScreenState extends State<PesananScreen> {
                 selectedOutlet: widget.selectedStoreId ?? "Pilih Outlet",
                 onOutletChanged: widget.onStoreChanged,
               ),
-              
+
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                 child: Row(
                   children: [
-                    const Expanded(
+                    Expanded(
                       child: SearchBar(
+                        controller: _searchController,
                         hintText: "Cari pesanan...",
-                        leading: Icon(Icons.search),
-                        elevation: WidgetStatePropertyAll(1),
+                        leading: const Icon(Icons.search),
+                        elevation: const WidgetStatePropertyAll(1),
+                        trailing: _searchQuery.isNotEmpty
+                            ? [
+                                IconButton(
+                                  icon: const Icon(Icons.clear),
+                                  onPressed: () {
+                                    _searchController.clear();
+                                    setState(() {
+                                      _searchQuery = '';
+                                    });
+                                  },
+                                ),
+                              ]
+                            : null,
+                        onChanged: (value) {
+                          setState(() {
+                            _searchQuery = value;
+                          });
+                        },
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -114,12 +159,12 @@ class _PesananScreenState extends State<PesananScreen> {
                         }
 
                         await Navigator.push(
-                          context, 
+                          context,
                           MaterialPageRoute(
                             builder: (context) => AddPesananScreen(store_id: widget.selectedStoreId!),
                           ),
                         );
-                        
+
                         _fetchPesanan();
                       },
                       style: ElevatedButton.styleFrom(
@@ -131,7 +176,7 @@ class _PesananScreenState extends State<PesananScreen> {
                   ],
                 ),
               ),
-              
+
               TabBar(
                 labelColor: Colors.amber[700],
                 unselectedLabelColor: Colors.grey[400],
@@ -143,7 +188,7 @@ class _PesananScreenState extends State<PesananScreen> {
                   Tab(icon: Icon(Icons.money_off), text: "Belum Bayar"),
                 ],
               ),
-              
+
               const SizedBox(height: 8),
 
               Expanded(
@@ -183,11 +228,11 @@ class _PesananScreenState extends State<PesananScreen> {
                             ).toList();
 
                             if (matchedStatuses.isEmpty) return 'Pending';
-                            
-                            matchedStatuses.sort((a, b) => 
+
+                            matchedStatuses.sort((a, b) =>
                               (a['created_at'] ?? '').toString().compareTo((b['created_at'] ?? '').toString())
                             );
-                            
+
                             return matchedStatuses.last['status_order'] ?? 'Pending';
                           }
 
@@ -199,23 +244,25 @@ class _PesananScreenState extends State<PesananScreen> {
                             return matched.isNotEmpty ? matched.first : null;
                           }
 
-                          // Filtering Tabs logic
+                          // Filtering Tabs logic (status) + search query
                           final antrianOrders = orders.where((order) {
                             final status = getLatestStatus(order['id']);
-                            return status == 'Pending' || status == 'Proses';
+                            final statusMatch = status == 'Pending' || status == 'Proses';
+                            return statusMatch && _matchesSearch(order);
                           }).toList();
 
                           final siapAmbilOrders = orders.where((order) {
                             final status = getLatestStatus(order['id']);
-                            return status == 'Ready' || status == 'Siap Ambil';
+                            final statusMatch = status == 'Ready' || status == 'Siap Ambil';
+                            return statusMatch && _matchesSearch(order);
                           }).toList();
 
                           final belumBayarOrders = orders.where((order) {
                             final status = getLatestStatus(order['id']);
                             final trx = getTransaction(order['id']);
                             final paymentStatus = trx?['status_pembayaran'] ?? 'Belum Bayar';
-
-                            return status == 'Selesai' && paymentStatus == 'Belum Bayar';
+                            final statusMatch = status == 'Selesai' && paymentStatus == 'Belum Bayar';
+                            return statusMatch && _matchesSearch(order);
                           }).toList();
 
                           return TabBarView(
@@ -241,8 +288,12 @@ class _PesananScreenState extends State<PesananScreen> {
     Map<String, dynamic>? Function(dynamic) getTransaction,
   ) {
     if (orderList.isEmpty) {
-      return const Center(
-        child: Text("Tidak ada pesanan", style: TextStyle(color: Colors.white54)),
+      return Center(
+        child: Text(
+          _searchQuery.isEmpty ? "Tidak ada pesanan" : "Tidak ditemukan pesanan untuk \"$_searchQuery\"",
+          style: const TextStyle(color: Colors.white54),
+          textAlign: TextAlign.center,
+        ),
       );
     }
 
@@ -259,14 +310,14 @@ class _PesananScreenState extends State<PesananScreen> {
         final serviceDuration = order['duration']?['duration_name'] ?? 'Reguler';
         final totalPrice = order['total_harga']?.toString() ?? '0';
         final receipt = order['receipt']?.toString();
-        
+
         final paymentStatus = transaction?['status_pembayaran'] ?? 'Belum Bayar';
         final paymentType = transaction?['jenis_pembayaran'] ?? '-';
         final paymentText = "$paymentStatus ${paymentType != '-' ? '• $paymentType' : ''}";
 
         final createdAtRaw = order['created_at']?.toString() ?? '';
-        final entryTime = createdAtRaw.length >= 16 
-            ? createdAtRaw.substring(0, 16).replaceAll('T', ' ') 
+        final entryTime = createdAtRaw.length >= 16
+            ? createdAtRaw.substring(0, 16).replaceAll('T', ' ')
             : createdAtRaw;
 
         return _buildLaundryItemCard(
@@ -300,7 +351,7 @@ class _PesananScreenState extends State<PesananScreen> {
     return InkWell(
       onTap: () {
         Navigator.push(
-          context, 
+          context,
           MaterialPageRoute(builder: (context) => RincianPesananScreen(store_id: widget.selectedStoreId!, order_id: orderId)),
         );
       },
@@ -318,7 +369,7 @@ class _PesananScreenState extends State<PesananScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      serviceName, 
+                      serviceName,
                       style: TextStyle(fontWeight: FontWeight.bold, color: Colors.amber[800], fontSize: 16),
                     ),
                     Text(
@@ -335,11 +386,11 @@ class _PesananScreenState extends State<PesananScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              customerName, 
+                              customerName,
                               style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87),
                             ),
                             Text(
-                              "Masuk: $entryTime", 
+                              "Masuk: $entryTime",
                               style: const TextStyle(color: Colors.black54, fontSize: 12),
                             ),
                           ],
@@ -355,7 +406,7 @@ class _PesananScreenState extends State<PesananScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: Colors.amber[100], 
+                      color: Colors.amber[100],
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
@@ -365,15 +416,14 @@ class _PesananScreenState extends State<PesananScreen> {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    "Rp. $totalPrice", 
+                    "Rp. $totalPrice",
                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black87),
                   ),
                   Text(
-                    isPaid ? 
-                    paymentStatusText: paymentStatusText, 
+                    paymentStatusText,
                     style: TextStyle(
-                      color: isPaid ? Colors.green : Colors.red, 
-                      fontSize: 12, 
+                      color: isPaid ? Colors.green : Colors.red,
+                      fontSize: 12,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
