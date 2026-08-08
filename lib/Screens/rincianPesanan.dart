@@ -1,8 +1,9 @@
-import 'package:app_laundry/Models/orderModel.dart';
+import 'package:app_laundry/Models/notaModel.dart';
 import 'package:app_laundry/Models/orderStatusModel.dart';
 import 'package:app_laundry/Models/transaksiModel.dart';
 import 'package:app_laundry/Screens/navigationBar.dart';
 import 'package:app_laundry/Services/cashFlow_service.dart';
+import 'package:app_laundry/Services/nota_service.dart';
 import 'package:app_laundry/Services/orderDetail_service.dart';
 import 'package:app_laundry/Services/orderStatus_service.dart';
 import 'package:app_laundry/Services/order_service.dart';
@@ -11,6 +12,7 @@ import 'package:app_laundry/Services/transaksi_service.dart';
 import 'package:app_laundry/Widgets/customUpperBarNoMenu.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 
 class RincianPesananScreen extends StatefulWidget {
   final String store_id;
@@ -33,6 +35,7 @@ class _RincianPesananScreenState extends State<RincianPesananScreen> {
   final orderService = OrderService();
   final supabase = Supabase.instance.client;
   final cashFlowService = CashFlowService();
+  final notaService = NotaService();
 
   String caraBayar = "Tunai";
 
@@ -40,6 +43,7 @@ class _RincianPesananScreenState extends State<RincianPesananScreen> {
   late Future<dynamic> _orderDetailFuture;
   late Future<dynamic> _orderStatusFuture;
   late Future<dynamic> _transaksiFuture;
+  late Future<NotaModel?> _notaFuture;
 
   @override
   void initState() {
@@ -52,6 +56,59 @@ class _RincianPesananScreenState extends State<RincianPesananScreen> {
     _orderDetailFuture = orderDetailService.fetchOrderDetail2(widget.order_id);
     _orderStatusFuture = orderStatusService.fetchOrderStatus2(widget.order_id);
     _transaksiFuture = transaksiService.fetchTransaksi2(widget.order_id);
+    _notaFuture = notaService.fetchNotaStore(widget.store_id);
+  }
+
+  void whatsappMessageSiap(String nota, String phone, String name,
+      String storeName, String total, String statusBayar) async {
+    final number = phone.replaceFirst('0', '62');
+    final message =
+        "Hai $name, pesanan $nota anda sudah siap, silahkan ambil di $storeName.\n\n"
+        "Total: $total\nStatus: $statusBayar\n\nTerima kasih,\n$storeName";
+    final url = 'https://wa.me/967$number?text=${Uri.encodeComponent(message)}';
+    await launchUrlString(
+      url,
+      mode: LaunchMode.externalApplication,
+    );
+  }
+
+  void whatsappNota(
+    String nota,
+    String phone,
+    String name,
+    String storeName,
+    String total,
+    String alamatToko,
+    String pNToko,
+    String alamat,
+    String kasir,
+    String masuk,
+    String est,
+    String ketentuan,
+    List<Map<String, dynamic>> orderDetailsList,
+    String parfum,
+    String statusBayar) async {
+    final number = phone.replaceFirst('0', '62');
+
+    final layananLines = orderDetailsList.map((detail) {
+      final serviceName = detail['service']?['service_name'] ?? '-';
+      final durasiName = detail['service']?['duration']?['duration_name'] ?? '-';
+      final qty = detail['quantity']?.toString() ?? '-';
+      final unit = detail['service']?['unit']?['unit_name'] ?? '-';
+      final subtotal = _formatRupiah(detail['subtotal'] ?? 0);
+      return "$serviceName ($durasiName)\n$qty $unit = $subtotal";
+    }).join('\n');
+
+    final message = "$storeName\n$alamatToko\n$pNToko\n\n$nota\n"
+        "Pelanggan: $name\nNo Handphone: $number\nAlamat: $alamat\n"
+        "Kasir: $kasir\nMasuk: $masuk\nEst Selesai: $est\n"
+        "----------------------\nLAYANAN\n$layananLines\n"
+        "---------------------\nParfum: $parfum\n-------------------\n"
+        "Total Layanan: $total\n--------------------\nPEMBAYARAN\n"
+        "Total: $total\nStatus: $statusBayar\n\n$ketentuan";
+
+    final url = 'https://wa.me/967$number?text=${Uri.encodeComponent(message)}';
+    await launchUrlString(url, mode: LaunchMode.externalApplication);
   }
 
   void _showPaymentMethodDialog() {
@@ -84,7 +141,7 @@ class _RincianPesananScreenState extends State<RincianPesananScreen> {
                   ),
                   RadioListTile<String>(
                     title: const Text("Transfer Bank"),
-                    value: "Non Tunai",
+                    value: "Transfer",
                     groupValue: selectedMethod,
                     onChanged: (value) {
                       if (value != null) {
@@ -94,7 +151,7 @@ class _RincianPesananScreenState extends State<RincianPesananScreen> {
                   ),
                   RadioListTile<String>(
                     title: const Text("QRIS"),
-                    value: "Non Tunai",
+                    value: "QRIS",
                     groupValue: selectedMethod,
                     onChanged: (value) {
                       if (value != null) {
@@ -143,6 +200,38 @@ class _RincianPesananScreenState extends State<RincianPesananScreen> {
 
     try {
       await orderStatusService.addOrderStatus(newStatus);
+
+      // Notifikasi WhatsApp dipisah try/catch sendiri agar kegagalan kirim WA
+      // tidak membuat update status yang sebenarnya berhasil tampak gagal.
+      if (nextStatus.toLowerCase() == "ready") {
+        try {
+          final order = _toMap(await orderService.fetchOrderById(widget.order_id));
+          final transaksi = _toMap(await transaksiService.fetchTransaksi2(widget.order_id));
+
+          final int totalHarga = order['total_harga'] ?? 0;
+          final antarJemput = order['antar_jemput'] is Map
+              ? order['antar_jemput'] as Map<String, dynamic>
+              : {};
+          final int antarJemputHarga = antarJemput['harga'] ?? 0;
+          final diskonMap = order['diskon'] is Map
+              ? order['diskon'] as Map<String, dynamic>
+              : {};
+          final int diskonNominal = _calculateDiscountNominal(totalHarga, diskonMap);
+          final int totalBayar = totalHarga + antarJemputHarga - diskonNominal;
+
+          whatsappMessageSiap(
+            order['receipt'] ?? '-',
+            order['customer']?['nomor_telepon'] ?? '',
+            order['customer']?['nama'] ?? '-',
+            order['store']?['store_name'] ?? '-',
+            _formatRupiah(totalBayar),
+            transaksi['status_pembayaran'] ?? 'Belum Lunas',
+          );
+        } catch (e) {
+          print('Gagal mengirim notifikasi WhatsApp: $e');
+        }
+      }
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -171,16 +260,26 @@ class _RincianPesananScreenState extends State<RincianPesananScreen> {
     final String? userID = supabase.auth.currentUser?.id;
     if (userID == null) return;
 
+    // "Transfer" dan "QRIS" sama-sama tercatat sebagai "Non Tunai" di transaksi,
+    // tapi caraBayar tetap menyimpan metode spesifiknya untuk tampilan/struk.
+    final String jenisPembayaran = caraBayar == "Tunai" ? "Tunai" : "Non Tunai";
+
     final newTransaksi = TransaksiModel(
       order_id: widget.order_id,
       status_pembayaran: "Lunas",
-      jenis_pembayaran: caraBayar,
+      jenis_pembayaran: jenisPembayaran,
       profile_id: userID,
     );
 
     try {
       final jumlah = await transaksiService.editTransaksi(widget.order_id, newTransaksi);
-      await cashFlowService.addOrderPayment(orderId: widget.order_id, jumlah: jumlah, caraTransaksi: caraBayar, profileId: userID, store_id: widget.store_id);
+      await cashFlowService.addOrderPayment(
+        orderId: widget.order_id,
+        jumlah: jumlah,
+        caraTransaksi: caraBayar,
+        profileId: userID,
+        store_id: widget.store_id,
+      );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -189,8 +288,7 @@ class _RincianPesananScreenState extends State<RincianPesananScreen> {
           ),
         );
         setState(() {
-          _transaksiFuture =
-              transaksiService.fetchTransaksi2(widget.order_id);
+          _transaksiFuture = transaksiService.fetchTransaksi2(widget.order_id);
         });
       }
     } catch (e) {
@@ -210,7 +308,11 @@ class _RincianPesananScreenState extends State<RincianPesananScreen> {
       final uid = supabase.auth.currentUser?.id;
       final profile = await ProfileService().fetchProfileWithId(uid!);
       final oID = profile?.owner_id;
-      final newOrder = OrderStatusModel(order_id: widget.order_id, status_order: "Batal", profile_id: uid);
+      final newOrder = OrderStatusModel(
+        order_id: widget.order_id,
+        status_order: "Batal",
+        profile_id: uid,
+      );
       await orderStatusService.addOrderStatus(newOrder);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -358,7 +460,8 @@ class _RincianPesananScreenState extends State<RincianPesananScreen> {
             _orderFuture,
             _orderDetailFuture,
             _orderStatusFuture,
-            _transaksiFuture
+            _transaksiFuture,
+            _notaFuture,
           ]),
           builder: (context, AsyncSnapshot<List<dynamic>> snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
@@ -380,6 +483,7 @@ class _RincianPesananScreenState extends State<RincianPesananScreen> {
             final orderDetailsList = _toListOfMaps(snapshot.data![1]);
             final orderStatus = _toMap(snapshot.data![2]);
             final transaksi = _toMap(snapshot.data![3]);
+            final notaModel = snapshot.data![4] as NotaModel?;
 
             final int totalHarga = order['total_harga'] ?? 0;
             final antarJemput = order['antar_jemput'] is Map
@@ -521,9 +625,26 @@ class _RincianPesananScreenState extends State<RincianPesananScreen> {
                                     MainAxisAlignment.spaceEvenly,
                                 children: [
                                   IconButton(
-                                    onPressed: () {},
-                                    icon: const Icon(Icons.call,
-                                        color: Colors.white),
+                                    onPressed: () {
+                                      whatsappNota(
+                                        order['receipt'] ?? '-',
+                                        order['customer']?['nomor_telepon'] ?? '',
+                                        order['customer']?['nama'] ?? '-',
+                                        order['store']?['store_name'] ?? '-',
+                                        _formatRupiah(totalBayar),
+                                        order['store']?['alamat'] ?? '-',
+                                        order['store']?['nomor_telepon'] ?? '-',
+                                        order['customer']?['alamat'] ?? '-',
+                                        order['profiles']?['cashier_name'] ?? 'Manager',
+                                        order['created_at'] ?? '-',
+                                        _calculateEstimateFinish(order['created_at'] ?? '', maxHours),
+                                        notaModel?.ketentuan ?? '-',
+                                        orderDetailsList,
+                                        order['parfum']?['nama_parfum'] ?? '-',
+                                        currentPembayaran,
+                                      );
+                                    },
+                                    icon: const Icon(Icons.call, color: Colors.white),
                                     constraints: const BoxConstraints(),
                                     padding: const EdgeInsets.all(8.0),
                                   ),
@@ -659,10 +780,10 @@ class _RincianPesananScreenState extends State<RincianPesananScreen> {
                                   order['created_at'] ?? '', maxHours),
                             ),
                             const Divider(),
-                            if(currentStatus == "Selesai") 
-                              _buildInfoRow("Tanggal Selesai", orderStatus["created_at"]), 
-                            if(currentStatus == "Selesai") 
-                              const Divider(),
+                            if (currentStatus == "Selesai")
+                              _buildInfoRow(
+                                  "Tanggal Selesai", orderStatus["created_at"] ?? '-'),
+                            if (currentStatus == "Selesai") const Divider(),
                             _buildInfoRow(
                                 "Catatan",
                                 (order['catatan'] ?? '').isEmpty
@@ -711,7 +832,7 @@ class _RincianPesananScreenState extends State<RincianPesananScreen> {
                       ),
                     ),
                   ),
-                  if(currentStatus != "Selesai")
+                  if (currentStatus != "Selesai")
                     // ================= TOMBOL AKSI =================
                     Padding(
                       padding: const EdgeInsets.symmetric(
@@ -720,7 +841,7 @@ class _RincianPesananScreenState extends State<RincianPesananScreen> {
                         onPressed: () {
                           bool isReady = currentStatus.toLowerCase() == 'ready';
                           String targetStatus = isReady ? "Selesai" : "Ready";
-                          
+
                           confirmationModal(
                             title: "Konfirmasi Status Pesanan",
                             message:
@@ -739,7 +860,7 @@ class _RincianPesananScreenState extends State<RincianPesananScreen> {
                         ),
                       ),
                     ),
-                  // Conditionally show payment button only if NOT Lunas
+                  // Tombol pembayaran hanya tampil jika belum Lunas
                   if (currentPembayaran.toLowerCase() != 'lunas')
                     Padding(
                       padding: const EdgeInsets.symmetric(
@@ -749,7 +870,7 @@ class _RincianPesananScreenState extends State<RincianPesananScreen> {
                           confirmationModal(
                             title: "Konfirmasi Pembayaran",
                             message:
-                                "Apakah Anda yakin ingin mengubah status pembayaran menjadi $caraBayar'?",
+                                "Apakah Anda yakin ingin mengubah status pembayaran menjadi $caraBayar?",
                             onConfirm: _showPaymentMethodDialog,
                           );
                         },
@@ -760,7 +881,7 @@ class _RincianPesananScreenState extends State<RincianPesananScreen> {
                             style: TextStyle(fontWeight: FontWeight.bold)),
                       ),
                     ),
-                  if(currentStatus != "Selesai")
+                  if (currentStatus != "Selesai")
                     Padding(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 16.0, vertical: 4.0),

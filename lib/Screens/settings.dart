@@ -125,7 +125,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 title: "Pengaturan Nota",
                 subtitle: "Atur tampilan nota",
                 onTap: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => PengaturanNotaScreen()));
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => PengaturanNotaScreen(store_id: widget.selectedStoreId!,)));
                 },
               ),
               const Divider(),

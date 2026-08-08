@@ -2,18 +2,35 @@ import 'package:app_laundry/Models/notaModel.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 class NotaService {
   final _supabase = Supabase.instance.client;
-  Future<NotaModel> fetchNota(String? id) async {
+  Future<NotaModel?> fetchNota(String? id) async {
     try {
       final data = await _supabase
-          .from('nota') // Your table name
+          .from('nota')
           .select()
           .eq('id', id!)
           .maybeSingle();
-          
-      return NotaModel.fromMap(data!);
+
+      if (data == null) return null;
+      return NotaModel.fromMap(data);
     } catch (e) {
-      print('Error fetching diskons: $e');
-      rethrow; 
+      print('Error fetching nota: $e');
+      rethrow;
+    }
+  }
+
+  Future<NotaModel?> fetchNotaStore(String store_id) async {
+    try {
+      final data = await _supabase
+          .from('nota')
+          .select()
+          .eq('store_id', store_id)
+          .maybeSingle();
+
+      if (data == null) return null;
+      return NotaModel.fromMap(data);
+    } catch (e) {
+      print('Error fetching nota by store: $e');
+      rethrow;
     }
   }
 
