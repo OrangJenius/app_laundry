@@ -8,9 +8,11 @@ import 'package:app_laundry/Services/orderDetail_service.dart';
 import 'package:app_laundry/Services/orderStatus_service.dart';
 import 'package:app_laundry/Services/order_service.dart';
 import 'package:app_laundry/Services/profile_service.dart';
+import 'package:app_laundry/Services/receipt_print_service.dart';
 import 'package:app_laundry/Services/transaksi_service.dart';
 import 'package:app_laundry/Widgets/customUpperBarNoMenu.dart';
 import 'package:flutter/material.dart';
+import 'package:print_bluetooth_thermal/print_bluetooth_thermal.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
@@ -36,6 +38,7 @@ class _RincianPesananScreenState extends State<RincianPesananScreen> {
   final supabase = Supabase.instance.client;
   final cashFlowService = CashFlowService();
   final notaService = NotaService();
+  final receiptPrintService = ReceiptPrintService();
 
   String caraBayar = "Tunai";
 
@@ -65,7 +68,7 @@ class _RincianPesananScreenState extends State<RincianPesananScreen> {
     final message =
         "Hai $name, pesanan $nota anda sudah siap, silahkan ambil di $storeName.\n\n"
         "Total: $total\nStatus: $statusBayar\n\nTerima kasih,\n$storeName";
-    final url = 'https://wa.me/967$number?text=${Uri.encodeComponent(message)}';
+    final url = 'https://wa.me/$number?text=${Uri.encodeComponent(message)}';
     await launchUrlString(
       url,
       mode: LaunchMode.externalApplication,
@@ -107,7 +110,7 @@ class _RincianPesananScreenState extends State<RincianPesananScreen> {
         "Total Layanan: $total\n--------------------\nPEMBAYARAN\n"
         "Total: $total\nStatus: $statusBayar\n\n$ketentuan";
 
-    final url = 'https://wa.me/967$number?text=${Uri.encodeComponent(message)}';
+    final url = 'https://wa.me/$number?text=${Uri.encodeComponent(message)}';
     await launchUrlString(url, mode: LaunchMode.externalApplication);
   }
 
@@ -450,6 +453,209 @@ class _RincianPesananScreenState extends State<RincianPesananScreen> {
     return [];
   }
 
+  void _showPrintModal({
+  required Map<String, dynamic> order,
+  required List<Map<String, dynamic>> orderDetailsList,
+  required NotaModel? notaModel,
+  required int totalBayar,
+  required String currentPembayaran,
+  required int maxHours,
+}) {
+  showModalBottomSheet(
+    context: context,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+    ),
+    builder: (context) {
+      return SafeArea(
+        child: Wrap(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12.0),
+              child: Center(
+                child: Text(
+                  "Pilih Jenis Nota",
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.grey[800]),
+                ),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.receipt_long, color: Colors.amber),
+              title: const Text("Nota Pelanggan"),
+              subtitle: const Text("Berisi rincian harga & pembayaran"),
+              onTap: () {
+                Navigator.pop(context);
+                _printNotaPelanggan(
+                  order: order,
+                  orderDetailsList: orderDetailsList,
+                  notaModel: notaModel,
+                  totalBayar: totalBayar,
+                  currentPembayaran: currentPembayaran,
+                  maxHours: maxHours,
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.local_laundry_service, color: Colors.amber),
+              title: const Text("Nota Produksi"),
+              subtitle: const Text("Untuk staf, tanpa harga"),
+              onTap: () {
+                Navigator.pop(context);
+                _printNotaProduksi(
+                  order: order,
+                  orderDetailsList: orderDetailsList,
+                  maxHours: maxHours,
+                  totalBayar: totalBayar,
+                  currentPembayaran: currentPembayaran,
+                );
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      );
+    },
+  );
+}
+
+  Future<bool> _ensurePrinterConnected() async {
+    final connected = await receiptPrintService.isConnected();
+    if (connected) return true;
+
+    final printers = await receiptPrintService.getPairedPrinters();
+    if (!mounted) return false;
+    if (printers.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Tidak ada printer terpasang. Sambungkan via Bluetooth Settings dulu."),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return false;
+    }
+
+    final picked = await showDialog<BluetoothInfo>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
+        title: const Text("Pilih Printer"),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: printers.length,
+            itemBuilder: (context, index) {
+              final p = printers[index];
+              return ListTile(
+                title: Text(p.name),
+                subtitle: Text(p.macAdress),
+                onTap: () => Navigator.pop(context, p),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+
+    if (picked == null || !mounted) return false;
+    final ok = await receiptPrintService.connectPrinter(picked.macAdress);
+    if (!ok && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Gagal terhubung ke printer"), backgroundColor: Colors.red),
+      );
+    }
+    return ok;
+  }
+
+  Future<void> _printNotaPelanggan({
+    required Map<String, dynamic> order,
+    required List<Map<String, dynamic>> orderDetailsList,
+    required NotaModel? notaModel,
+    required int totalBayar,
+    required String currentPembayaran,
+    required int maxHours,
+  }) async {
+    if (!await _ensurePrinterConnected()) return;
+
+    try {
+      final bytes = await receiptPrintService.generateNotaPelanggan(
+        storeName: order['store']?['store_name'] ?? '-',
+        alamatToko: order['store']?['alamat'] ?? '-',
+        pNToko: order['store']?['nomor_telepon'] ?? '-',
+        nota: order['receipt'] ?? '-',
+        customerName: order['customer']?['nama'] ?? '-',
+        customerPhone: order['customer']?['nomor_telepon'] ?? '-',
+        alamat: order['customer']?['alamat'] ?? '-',
+        kasir: (order['profiles']?['cashier_name'] ?? '').isEmpty
+            ? 'Manager'
+            : order['profiles']['cashier_name'],
+        masuk: order['created_at'] ?? '-',
+        est: _calculateEstimateFinish(order['created_at'] ?? '', maxHours),
+        orderDetailsList: orderDetailsList,
+        parfum: order['parfum']?['nama_parfum'] ?? '-',
+        total: _formatRupiah(totalBayar),
+        statusBayar: currentPembayaran,
+        ketentuan: notaModel?.ketentuan ?? '-',
+      );
+      await receiptPrintService.printBytes(bytes);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Nota Pelanggan berhasil dicetak"), backgroundColor: Colors.green),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Gagal mencetak: $e"), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  Future<void> _printNotaProduksi({
+    required Map<String, dynamic> order,
+    required List<Map<String, dynamic>> orderDetailsList,
+    required int maxHours,
+    required int totalBayar,
+    required String currentPembayaran,
+  }) async {
+    if (!await _ensurePrinterConnected()) return;
+
+    try {
+      final bytes = await receiptPrintService.generateNotaProduksi(
+        storeName: order['store']?['store_name'] ?? '-',
+        alamatToko: order['store']?['alamat'] ?? '-',
+        pNToko: order['store']?['nomor_telepon'] ?? '-',
+        nota: order['receipt'] ?? '-',
+        customerName: order['customer']?['nama'] ?? '-',
+        customerPhone: order['customer']?['nomor_telepon'] ?? '-',
+        alamat: order['customer']?['alamat'] ?? '-',
+        kasir: (order['profiles']?['cashier_name'] ?? '').isEmpty
+            ? 'Manager'
+            : order['profiles']['cashier_name'],
+        masuk: order['created_at'] ?? '-',
+        est: _calculateEstimateFinish(order['created_at'] ?? '', maxHours),
+        orderDetailsList: orderDetailsList,
+        parfum: order['parfum']?['nama_parfum'] ?? '-',
+        catatan: (order['catatan'] ?? '').isEmpty ? '-' : order['catatan'],
+        total: _formatRupiah(totalBayar),
+        statusBayar: currentPembayaran,
+      );
+      await receiptPrintService.printBytes(bytes);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Nota Produksi berhasil dicetak"), backgroundColor: Colors.green),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Gagal mencetak: $e"), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -649,9 +855,15 @@ class _RincianPesananScreenState extends State<RincianPesananScreen> {
                                     padding: const EdgeInsets.all(8.0),
                                   ),
                                   IconButton(
-                                    onPressed: () {},
-                                    icon: const Icon(Icons.print,
-                                        color: Colors.white),
+                                    onPressed: () => _showPrintModal(
+                                      order: order,
+                                      orderDetailsList: orderDetailsList,
+                                      notaModel: notaModel,
+                                      totalBayar: totalBayar,
+                                      currentPembayaran: currentPembayaran,
+                                      maxHours: maxHours,
+                                    ),
+                                    icon: const Icon(Icons.print, color: Colors.white),
                                     constraints: const BoxConstraints(),
                                     padding: const EdgeInsets.all(8.0),
                                   ),
