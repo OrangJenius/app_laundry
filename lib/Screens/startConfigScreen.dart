@@ -95,11 +95,11 @@ class _StartConfigScreenState extends State<StartConfigScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
                 child: Row(
                   children: [
-                    Icon(Icons.phone_android, color: Colors.amberAccent),
+                    Icon(Icons.gps_fixed, color: Colors.amberAccent),
                     SizedBox(width: 12),
                     Expanded(
                       child: TextField(
-                        controller: _phoneController,
+                        controller: _alamatController,
                         style: TextStyle(color: Colors.white),
                         maxLines: 2, // Alamat biasanya panjang, diberi 2 baris agar rapi
                         decoration: InputDecoration(
@@ -109,7 +109,7 @@ class _StartConfigScreenState extends State<StartConfigScreen> {
                           focusedBorder: OutlineInputBorder(
                             borderSide: BorderSide(color: Colors.amberAccent),
                           ),
-                          labelText: 'No Handphone',
+                          labelText: 'Alamat',
                           labelStyle: TextStyle(color: Colors.grey[400]),
                         ),
                       ),
@@ -123,11 +123,11 @@ class _StartConfigScreenState extends State<StartConfigScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
                 child: Row(
                   children: [
-                    Icon(Icons.gps_fixed, color: Colors.amberAccent),
+                    Icon(Icons.phone_android, color: Colors.amberAccent),
                     SizedBox(width: 12),
                     Expanded(
                       child: TextField(
-                        controller: _alamatController,
+                        controller: _phoneController,
                         keyboardType: TextInputType.phone, // Memunculkan keyboard angka
                         style: TextStyle(color: Colors.white),
                         decoration: InputDecoration(
@@ -137,7 +137,7 @@ class _StartConfigScreenState extends State<StartConfigScreen> {
                           focusedBorder: OutlineInputBorder(
                             borderSide: BorderSide(color: Colors.amberAccent),
                           ),
-                          labelText: 'Alamat',
+                          labelText: 'No. Handphone',
                           labelStyle: TextStyle(color: Colors.grey[400]),
                         ),
                       ),
