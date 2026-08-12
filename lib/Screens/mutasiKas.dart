@@ -2,9 +2,13 @@ import 'package:app_laundry/Models/cashFlowModel.dart';
 import 'package:app_laundry/Models/storeModel.dart';
 import 'package:app_laundry/Services/cashFlow_service.dart';
 import 'package:app_laundry/Services/store_service.dart';
-import 'package:app_laundry/Widgets/customUpperBarNoMenu.dart';
+import 'package:app_laundry/Widgets/upperBarExcel.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'dart:io';
+import 'package:excel/excel.dart' as excel_lib;
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 class MutasiKasScreen extends StatefulWidget {
   final String store_id;
@@ -66,6 +70,106 @@ class _MutasiKasScreenState extends State<MutasiKasScreen> {
     return DateFormat('dd/MM/yyyy - HH:mm').format(dt);
   }
 
+  bool _isExporting = false;
+
+  Future<void> _exportToExcel(String storeName, List<CashFlowModel> logs) async {
+    setState(() => _isExporting = true);
+
+    try {
+      final excel_lib.Excel excelFile = excel_lib.Excel.createExcel();
+      final excel_lib.Sheet sheet = excelFile['Mutasi Kas'];
+      excelFile.delete('Sheet1');
+
+      final excel_lib.CellStyle headerStyle = excel_lib.CellStyle(
+        bold: true,
+        backgroundColorHex: excel_lib.ExcelColor.fromHexString('#00BCD4'),
+        fontColorHex: excel_lib.ExcelColor.white,
+      );
+      final excel_lib.CellStyle boldStyle = excel_lib.CellStyle(bold: true);
+
+      int row = 0;
+
+      void writeCell(int col, int r, dynamic value, {excel_lib.CellStyle? style}) {
+        final cell = sheet.cell(
+          excel_lib.CellIndex.indexByColumnRow(columnIndex: col, rowIndex: r),
+        );
+        if (value is num) {
+          cell.value = excel_lib.DoubleCellValue(value.toDouble());
+        } else {
+          cell.value = excel_lib.TextCellValue(value.toString());
+        }
+        if (style != null) cell.cellStyle = style;
+      }
+
+      // Title & Meta
+      writeCell(0, row, 'MUTASI KAS', style: headerStyle);
+      row++;
+      writeCell(0, row, 'Outlet');
+      writeCell(1, row, storeName);
+      row++;
+      writeCell(0, row, 'Periode');
+      writeCell(1, row,
+          "${_formatDate(widget.date.start)} - ${_formatDate(widget.date.end)}");
+      row += 2;
+
+      // Table header
+      final headers = [
+        'Tanggal',
+        'Tipe',
+        'Order ID',
+        'Keterangan',
+        'Cara Transaksi',
+        'Nominal',
+      ];
+      for (int i = 0; i < headers.length; i++) {
+        writeCell(i, row, headers[i], style: boldStyle);
+      }
+      row++;
+
+      for (var log in logs) {
+        final isMasuk = log.tipe.toUpperCase() == 'MASUK';
+        final nominal = double.tryParse(log.jumlah) ?? 0.0;
+
+        writeCell(0, row, _formatDateTime(log.created_at));
+        writeCell(1, row, log.tipe);
+        writeCell(2, row, log.order_id?.toString() ?? '-');
+        writeCell(3, row, log.keterangan);
+        writeCell(4, row, log.cara_transaksi);
+        writeCell(5, row, isMasuk ? nominal : -nominal);
+        row++;
+      }
+
+      for (int i = 0; i < headers.length; i++) {
+        sheet.setColumnWidth(i, 20);
+      }
+
+      final directory = await getTemporaryDirectory();
+      final fileName =
+          'Mutasi_Kas_${storeName}_${DateFormat('yyyyMMdd').format(widget.date.start)}.xlsx'
+              .replaceAll(' ', '_');
+      final filePath = '${directory.path}/$fileName';
+      final fileBytes = excelFile.encode();
+
+      if (fileBytes == null) throw Exception('Gagal encode file excel');
+
+      final file = File(filePath);
+      await file.writeAsBytes(fileBytes);
+
+      await Share.shareXFiles(
+        [XFile(filePath)],
+        text: 'Mutasi Kas $storeName',
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal export: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isExporting = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final periodText =
@@ -96,8 +200,11 @@ class _MutasiKasScreenState extends State<MutasiKasScreen> {
             return SingleChildScrollView(
               child: Column(
                 children: [
-                  const UpperBar2(title: "MUTASI KAS"),
-
+                  UpperBarExcel(
+                    title: "MUTASI KAS",
+                    isExporting: _isExporting,
+                    onExport: () => _exportToExcel(data['store_name'], logs),
+                  ),
                   // CARD 1: RINGKASAN SALDO
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),

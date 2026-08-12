@@ -1,4 +1,3 @@
-import 'package:app_laundry/Screens/navigationBar.dart';
 import 'package:app_laundry/Screens/splashScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';

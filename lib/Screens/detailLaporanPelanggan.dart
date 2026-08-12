@@ -2,9 +2,13 @@ import 'package:app_laundry/Models/customerModel.dart';
 import 'package:app_laundry/Services/customer_service.dart';
 import 'package:app_laundry/Services/order_service.dart';
 import 'package:app_laundry/Services/store_service.dart';
+import 'package:app_laundry/Widgets/upperBarExcel.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:app_laundry/Widgets/customUpperBarNoMenu.dart';
+import 'dart:io';
+import 'package:excel/excel.dart' as excel_lib;
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 // Model penampung ringkasan data analisis pelanggan
 class CustomerReportData {
@@ -153,6 +157,103 @@ class _DetailLaporanPelangganScreenState extends State<DetailLaporanPelangganScr
     return "${formatter.format(range.start)} - ${formatter.format(range.end)}";
   }
 
+  bool _isExporting = false;
+
+  Future<void> _exportToExcel(CustomerReportData? data) async {
+    if (data == null) return;
+
+    setState(() => _isExporting = true);
+
+    try {
+      final excel_lib.Excel excelFile = excel_lib.Excel.createExcel();
+      final excel_lib.Sheet sheet = excelFile['Laporan Pelanggan'];
+      excelFile.delete('Sheet1');
+
+      final excel_lib.CellStyle headerStyle = excel_lib.CellStyle(
+        bold: true,
+        backgroundColorHex: excel_lib.ExcelColor.fromHexString('#FF9800'),
+        fontColorHex: excel_lib.ExcelColor.white,
+      );
+      final excel_lib.CellStyle boldStyle = excel_lib.CellStyle(bold: true);
+
+      int row = 0;
+
+      void writeCell(int col, int r, dynamic value, {excel_lib.CellStyle? style}) {
+        final cell = sheet.cell(
+          excel_lib.CellIndex.indexByColumnRow(columnIndex: col, rowIndex: r),
+        );
+        if (value is num) {
+          cell.value = excel_lib.DoubleCellValue(value.toDouble());
+        } else {
+          cell.value = excel_lib.TextCellValue(value.toString());
+        }
+        if (style != null) cell.cellStyle = style;
+      }
+
+      // Title & Meta
+      writeCell(0, row, 'LAPORAN PELANGGAN', style: headerStyle);
+      row++;
+      writeCell(0, row, 'Outlet');
+      writeCell(1, row, data.storeName);
+      row++;
+      writeCell(0, row, 'Periode');
+      writeCell(1, row, _formatDateRange(widget.date));
+      row += 2;
+
+      // Section: Analisa Pelanggan
+      writeCell(0, row, 'ANALISA PELANGGAN', style: headerStyle);
+      row++;
+
+      void writeAnalisaRow(String label, String value, {String? subLabel}) {
+        writeCell(0, row, subLabel != null ? '$label ($subLabel)' : label, style: boldStyle);
+        writeCell(1, row, value);
+        row++;
+      }
+
+      writeAnalisaRow('Pelanggan Baru', '${data.newCustomersCount} Orang');
+      writeAnalisaRow('Total Pelanggan', '${data.totalCustomers} Orang');
+      writeAnalisaRow(
+        'Pelanggan Dengan Jumlah Pesanan Terbanyak',
+        data.topOrderCustomerName,
+        subLabel: '${data.topOrderCount} pesanan',
+      );
+      writeAnalisaRow(
+        'Pelanggan Dengan Nilai Pesanan Terbanyak',
+        data.topValueCustomerName,
+        subLabel: _formatRupiah(data.topValueTotal),
+      );
+
+      for (int i = 0; i < 2; i++) {
+        sheet.setColumnWidth(i, 35);
+      }
+
+      final directory = await getTemporaryDirectory();
+      final fileName =
+          'Laporan_Pelanggan_${data.storeName}_${DateFormat('yyyyMMdd').format(widget.date.start)}.xlsx'
+              .replaceAll(' ', '_');
+      final filePath = '${directory.path}/$fileName';
+      final fileBytes = excelFile.encode();
+
+      if (fileBytes == null) throw Exception('Gagal encode file excel');
+
+      final file = File(filePath);
+      await file.writeAsBytes(fileBytes);
+
+      await Share.shareXFiles(
+        [XFile(filePath)],
+        text: 'Laporan Pelanggan ${data.storeName}',
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal export: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isExporting = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -184,7 +285,11 @@ class _DetailLaporanPelangganScreenState extends State<DetailLaporanPelangganScr
               child: Column(
                 children: [
                   // Judul Halaman
-                  UpperBar2(title: "LAPORAN PELANGGAN"),
+                  UpperBarExcel(
+                    title: "LAPORAN PELANGGAN",
+                    isExporting: _isExporting,
+                    onExport: () => _exportToExcel(data),
+                  ),
 
                   // CARD 1: RINGKASAN DATA OUTLET & PERIODE
                   Padding(

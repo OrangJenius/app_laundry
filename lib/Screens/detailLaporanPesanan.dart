@@ -4,9 +4,13 @@ import 'package:app_laundry/Services/orderDetail_service.dart';
 import 'package:app_laundry/Services/orderStatus_service.dart';
 import 'package:app_laundry/Services/order_service.dart';
 import 'package:app_laundry/Services/transaksi_service.dart';
-import 'package:app_laundry/Widgets/customUpperBarNoMenu.dart';
+import 'package:app_laundry/Widgets/upperBarExcel.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'dart:io';
+import 'package:excel/excel.dart' as excel_lib;
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 class DetailLaporanPesananScreen extends StatefulWidget {
   final DateTimeRange date;
@@ -191,6 +195,156 @@ class _DetailLaporanPesananScreenState
     };
   }
 
+  bool _isExporting = false;
+
+  Future<void> _exportToExcel({
+    required List<OrderModel> orders,
+    required Map<String, dynamic> summary,
+    required Map<String, dynamic> transactions,
+    required Map<String, String> latestStatuses,
+  }) async {
+    setState(() => _isExporting = true);
+
+    try {
+      final excel_lib.Excel excelFile = excel_lib.Excel.createExcel();
+      final excel_lib.Sheet sheet = excelFile['Laporan Pesanan'];
+      excelFile.delete('Sheet1');
+
+      final excel_lib.CellStyle headerStyle = excel_lib.CellStyle(
+        bold: true,
+        backgroundColorHex: excel_lib.ExcelColor.fromHexString('#9C27B0'),
+        fontColorHex: excel_lib.ExcelColor.white,
+      );
+      final excel_lib.CellStyle boldStyle = excel_lib.CellStyle(bold: true);
+
+      int row = 0;
+
+      void writeCell(int col, int r, dynamic value, {excel_lib.CellStyle? style}) {
+        final cell = sheet.cell(
+          excel_lib.CellIndex.indexByColumnRow(columnIndex: col, rowIndex: r),
+        );
+        if (value is num) {
+          cell.value = excel_lib.DoubleCellValue(value.toDouble());
+        } else {
+          cell.value = excel_lib.TextCellValue(value.toString());
+        }
+        if (style != null) cell.cellStyle = style;
+      }
+
+      final formattedPeriod =
+          "${_dateFormatShort.format(widget.date.start)} - ${_dateFormatShort.format(widget.date.end)}";
+
+      // Title & Meta
+      writeCell(0, row, 'LAPORAN PESANAN', style: headerStyle);
+      row++;
+      writeCell(0, row, 'Outlet');
+      writeCell(1, row, widget.store_id);
+      row++;
+      writeCell(0, row, 'Periode');
+      writeCell(1, row, formattedPeriod);
+      row += 2;
+
+      // Section: Ringkasan
+      writeCell(0, row, 'RINGKASAN', style: headerStyle);
+      row++;
+
+      void writeSummaryLine(String label, dynamic value, {bool bold = false}) {
+        writeCell(0, row, label, style: bold ? boldStyle : null);
+        writeCell(1, row, value, style: bold ? boldStyle : null);
+        row++;
+      }
+
+      writeSummaryLine('Jumlah Pesanan', summary['totalOrders'], bold: true);
+      writeSummaryLine('Nilai Pesanan', summary['totalValue'], bold: true);
+      writeSummaryLine('  Sudah Bayar', summary['paidValue']);
+      writeSummaryLine('  Belum Bayar', summary['unpaidValue']);
+      writeSummaryLine('Pesanan Batal', summary['canceledOrders'], bold: true);
+      writeSummaryLine('Nilai Pesanan Batal', summary['canceledValue']);
+      writeSummaryLine('Total Antar-Jemput', summary['totalDelivery'], bold: true);
+      writeSummaryLine('Total Diskon', summary['totalDiscount'], bold: true);
+      writeSummaryLine('Total Kiloan (Kg)', summary['totalKiloan'], bold: true);
+      writeSummaryLine('Total Satuan (pcs)', summary['totalSatuan'], bold: true);
+      writeSummaryLine('Total Meteran (m)', summary['totalMeteran'], bold: true);
+
+      row += 1;
+
+      // Section: List Pesanan
+      writeCell(0, row, 'DAFTAR PESANAN', style: headerStyle);
+      row++;
+
+      final headers = [
+        'Tanggal',
+        'Receipt',
+        'Pelanggan',
+        'Kasir',
+        'Status',
+        'Total',
+        'Status Bayar',
+        'Metode Bayar',
+      ];
+      for (int i = 0; i < headers.length; i++) {
+        writeCell(i, row, headers[i], style: boldStyle);
+      }
+      row++;
+
+      for (var order in orders) {
+        final tx = transactions[order.id];
+        final statusName = latestStatuses[order.id] ?? 'Dalam Proses';
+
+        final createdDate = order.created_at != null
+            ? DateTime.tryParse(order.created_at!) ?? DateTime.now()
+            : DateTime.now();
+
+        final orderTotal = double.tryParse(order.total_harga ?? '0') ?? 0;
+
+        final paymentStatus =
+            tx != null ? (tx['status_pembayaran'] ?? 'Belum Bayar') : 'Belum Bayar';
+        final paymentMethod = tx != null
+            ? (tx['metode_pembayaran'] ?? tx['jenis_pembayaran'] ?? '-')
+            : '-';
+
+        writeCell(0, row, _dateTimeFormat.format(createdDate));
+        writeCell(1, row, order.receipt ?? '-');
+        writeCell(2, row, order.customer?.nama ?? 'Pelanggan');
+        writeCell(3, row, order.profiles?.cashier_name ?? 'Manager');
+        writeCell(4, row, statusName);
+        writeCell(5, row, orderTotal);
+        writeCell(6, row, paymentStatus);
+        writeCell(7, row, paymentMethod);
+        row++;
+      }
+
+      for (int i = 0; i < headers.length; i++) {
+        sheet.setColumnWidth(i, 20);
+      }
+
+      final directory = await getTemporaryDirectory();
+      final fileName =
+          'Laporan_Pesanan_${widget.store_id}_${DateFormat('yyyyMMdd').format(widget.date.start)}.xlsx'
+              .replaceAll(' ', '_');
+      final filePath = '${directory.path}/$fileName';
+      final fileBytes = excelFile.encode();
+
+      if (fileBytes == null) throw Exception('Gagal encode file excel');
+
+      final file = File(filePath);
+      await file.writeAsBytes(fileBytes);
+
+      await Share.shareXFiles(
+        [XFile(filePath)],
+        text: 'Laporan Pesanan',
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal export: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isExporting = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     String formattedPeriod =
@@ -205,7 +359,7 @@ class _DetailLaporanPesananScreenState
             if (snapshot.connectionState == ConnectionState.waiting) {
               return Column(
                 children: const [
-                  UpperBar2(title: "LAPORAN PESANAN"),
+                  UpperBarExcel(title: "LAPORAN PESANAN"),
                   Expanded(
                     child: Center(
                       child: CircularProgressIndicator(color: Colors.white),
@@ -218,7 +372,7 @@ class _DetailLaporanPesananScreenState
             if (snapshot.hasError) {
               return Column(
                 children: [
-                  const UpperBar2(title: "LAPORAN PESANAN"),
+                  const UpperBarExcel(title: "LAPORAN PESANAN"),
                   Expanded(
                     child: Center(
                       child: Text(
@@ -240,7 +394,16 @@ class _DetailLaporanPesananScreenState
             return SingleChildScrollView(
               child: Column(
                 children: [
-                  const UpperBar2(title: "LAPORAN PESANAN"),
+                  UpperBarExcel(
+                    title: "LAPORAN PESANAN",
+                    isExporting: _isExporting,
+                    onExport: () => _exportToExcel(
+                      orders: orders,
+                      summary: summary,
+                      transactions: transactions,
+                      latestStatuses: latestStatuses,
+                    ),
+                  ),
 
                   // CARD 1: RINGKASAN
                   Padding(

@@ -2,9 +2,13 @@ import 'package:app_laundry/Models/serviceModel.dart';
 import 'package:app_laundry/Services/orderDetail_service.dart';
 import 'package:app_laundry/Services/service_service.dart';
 import 'package:app_laundry/Services/store_service.dart';
+import 'package:app_laundry/Widgets/upperBarExcel.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:app_laundry/Widgets/customUpperBarNoMenu.dart'; 
+import 'dart:io';
+import 'package:excel/excel.dart' as excel_lib;
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 // Model penampung untuk kalkulasi agregasi data per-layanan
 class ServiceReportItem {
@@ -161,6 +165,116 @@ class _DetailLaporanLayananScreenState extends State<DetailLaporanLayananScreen>
     return "${formatter.format(range.start)} - ${formatter.format(range.end)}";
   }
 
+  bool _isExporting = false;
+
+  Future<void> _exportToExcel(String storeName, List<ServiceReportItem> items) async {
+    setState(() => _isExporting = true);
+
+    try {
+      final excel_lib.Excel excelFile = excel_lib.Excel.createExcel();
+      final excel_lib.Sheet sheet = excelFile['Laporan Layanan'];
+      excelFile.delete('Sheet1');
+
+      final excel_lib.CellStyle headerStyle = excel_lib.CellStyle(
+        bold: true,
+        backgroundColorHex: excel_lib.ExcelColor.fromHexString('#2196F3'),
+        fontColorHex: excel_lib.ExcelColor.white,
+      );
+      final excel_lib.CellStyle boldStyle = excel_lib.CellStyle(bold: true);
+
+      int row = 0;
+
+      void writeCell(int col, int r, dynamic value, {excel_lib.CellStyle? style}) {
+        final cell = sheet.cell(
+          excel_lib.CellIndex.indexByColumnRow(columnIndex: col, rowIndex: r),
+        );
+        if (value is num) {
+          cell.value = excel_lib.DoubleCellValue(value.toDouble());
+        } else {
+          cell.value = excel_lib.TextCellValue(value.toString());
+        }
+        if (style != null) cell.cellStyle = style;
+      }
+
+      // Title & Meta
+      writeCell(0, row, 'LAPORAN LAYANAN', style: headerStyle);
+      row++;
+      writeCell(0, row, 'Outlet');
+      writeCell(1, row, storeName);
+      row++;
+      writeCell(0, row, 'Periode');
+      writeCell(1, row, _formatDateRange(widget.date));
+      row++;
+
+      final totalDurasiCount = items
+          .map((e) => e.service.duration_id)
+          .where((id) => id.isNotEmpty)
+          .toSet()
+          .length;
+      writeCell(0, row, 'Jenis Durasi');
+      writeCell(1, row, totalDurasiCount);
+      row++;
+      writeCell(0, row, 'Jenis Layanan');
+      writeCell(1, row, items.length);
+      row += 2;
+
+      // Sorted according to whichever sort is currently selected on screen
+      final sortedItems = _sortList(items);
+
+      // Table header
+      final headers = ['Rank', 'Durasi', 'Nama Layanan', 'Total Nilai', 'Total Kuantitas'];
+      for (int i = 0; i < headers.length; i++) {
+        writeCell(i, row, headers[i], style: boldStyle);
+      }
+      row++;
+
+      for (int i = 0; i < sortedItems.length; i++) {
+        final item = sortedItems[i];
+        final durasiNama = item.service.duration?.duration_name ?? '-';
+        final unitNama = item.service.unit?.unit_name ?? '';
+        final formattedQty = item.totalQty % 1 == 0
+            ? item.totalQty.toInt().toString()
+            : item.totalQty.toStringAsFixed(1);
+
+        writeCell(0, row, '#${i + 1}');
+        writeCell(1, row, durasiNama);
+        writeCell(2, row, item.service.service_name);
+        writeCell(3, row, item.totalSubtotal);
+        writeCell(4, row, "$formattedQty $unitNama".trim());
+        row++;
+      }
+
+      for (int i = 0; i < 5; i++) {
+        sheet.setColumnWidth(i, 20);
+      }
+
+      final directory = await getTemporaryDirectory();
+      final fileName =
+          'Laporan_Layanan_${storeName}_${DateFormat('yyyyMMdd').format(widget.date.start)}.xlsx'
+              .replaceAll(' ', '_');
+      final filePath = '${directory.path}/$fileName';
+      final fileBytes = excelFile.encode();
+
+      if (fileBytes == null) throw Exception('Gagal encode file excel');
+
+      final file = File(filePath);
+      await file.writeAsBytes(fileBytes);
+
+      await Share.shareXFiles(
+        [XFile(filePath)],
+        text: 'Laporan Layanan $storeName',
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal export: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isExporting = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -197,7 +311,11 @@ class _DetailLaporanLayananScreenState extends State<DetailLaporanLayananScreen>
             return SingleChildScrollView(
               child: Column(
                 children: [
-                  UpperBar2(title: "LAPORAN LAYANAN"),
+                  UpperBarExcel(
+                    title: "LAPORAN LAYANAN",
+                    isExporting: _isExporting,
+                    onExport: () => _exportToExcel(storeName, items),
+                  ),
 
                   // CARD 1: RINGKASAN DATA LAYANAN
                   Padding(
