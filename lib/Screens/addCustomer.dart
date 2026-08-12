@@ -97,6 +97,7 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
                     Expanded(
                       child: TextField(
                         controller: _phoneController,
+                        keyboardType: TextInputType.phone, // Memunculkan keyboard angka
                         style: TextStyle(color: Colors.white),
                         maxLines: 2, // Alamat biasanya panjang, diberi 2 baris agar rapi
                         decoration: InputDecoration(
@@ -125,7 +126,6 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
                     Expanded(
                       child: TextField(
                         controller: _alamatController,
-                        keyboardType: TextInputType.phone, // Memunculkan keyboard angka
                         style: TextStyle(color: Colors.white),
                         decoration: InputDecoration(
                           enabledBorder: OutlineInputBorder(

@@ -61,8 +61,7 @@ class _StartConfigScreenState extends State<StartConfigScreen> {
         child: SingleChildScrollView(
           child: Column(
             children: [
-              UpperBar2(title: "TAMBAH STORE UNTUK MULAI"),
-              
+              UpperBar2(title: "TAMBAH STORE UNTUK MULAI"),              
               // FIELD 1: Nama Customer
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
@@ -82,34 +81,6 @@ class _StartConfigScreenState extends State<StartConfigScreen> {
                             borderSide: BorderSide(color: Colors.amberAccent),
                           ),
                           labelText: 'Nama Store',
-                          labelStyle: TextStyle(color: Colors.grey[400]),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // FIELD 2: Alamat Lengkap
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-                child: Row(
-                  children: [
-                    Icon(Icons.gps_fixed, color: Colors.amberAccent),
-                    SizedBox(width: 12),
-                    Expanded(
-                      child: TextField(
-                        controller: _alamatController,
-                        style: TextStyle(color: Colors.white),
-                        maxLines: 2, // Alamat biasanya panjang, diberi 2 baris agar rapi
-                        decoration: InputDecoration(
-                          enabledBorder: OutlineInputBorder(
-                            borderSide: BorderSide(color: Colors.grey),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderSide: BorderSide(color: Colors.amberAccent),
-                          ),
-                          labelText: 'Alamat',
                           labelStyle: TextStyle(color: Colors.grey[400]),
                         ),
                       ),
@@ -138,6 +109,34 @@ class _StartConfigScreenState extends State<StartConfigScreen> {
                             borderSide: BorderSide(color: Colors.amberAccent),
                           ),
                           labelText: 'No. Handphone',
+                          labelStyle: TextStyle(color: Colors.grey[400]),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // FIELD 2: Alamat Lengkap
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                child: Row(
+                  children: [
+                    Icon(Icons.gps_fixed, color: Colors.amberAccent),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: TextField(
+                        controller: _alamatController,
+                        style: TextStyle(color: Colors.white),
+                        maxLines: 2, // Alamat biasanya panjang, diberi 2 baris agar rapi
+                        decoration: InputDecoration(
+                          enabledBorder: OutlineInputBorder(
+                            borderSide: BorderSide(color: Colors.grey),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderSide: BorderSide(color: Colors.amberAccent),
+                          ),
+                          labelText: 'Alamat',
                           labelStyle: TextStyle(color: Colors.grey[400]),
                         ),
                       ),
