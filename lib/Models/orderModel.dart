@@ -91,9 +91,6 @@ class OrderModel {
       'profile_id': profile_id,
       'discount_id': discount_id,
       'created_at': created_at,
-      'customer': customer?.toMap(),
-      'antar_jemput': antar_jemput?.toMap(),
-      'profiles': profiles?.toMap(),
     };
   }
 
