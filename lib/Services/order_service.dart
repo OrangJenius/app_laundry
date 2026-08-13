@@ -22,10 +22,15 @@ class OrderService {
   Future<List<dynamic>> fetchOrder(String storeId) async {
     final response = await _supabase
         .from('order')
-        .select('*, customer(nama), duration(duration_name), store(store_name)')
+        .select('''
+          *,
+          customer(nama),
+          duration(duration_name),
+          store(store_name, address, phone_number)
+        ''')
         .eq('store_id', storeId)
         .order('created_at', ascending: false);
-        
+
     return response;
   }
   Future<List<dynamic>> fetchOrderById(String order_id) async {
