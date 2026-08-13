@@ -79,7 +79,6 @@ class OrderModel {
 
   Map<String, dynamic> toMap() {
     return <String, dynamic>{
-      'id': id,
       'store_id': store_id,
       'receipt': receipt,
       'duration_id': duration_id,
