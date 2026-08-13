@@ -580,8 +580,8 @@ class _RincianPesananScreenState extends State<RincianPesananScreen> {
     try {
       final bytes = await receiptPrintService.generateNotaPelanggan(
         storeName: order['store']?['store_name'] ?? '-',
-        alamatToko: order['store']?['alamat'] ?? '-',
-        pNToko: order['store']?['nomor_telepon'] ?? '-',
+        alamatToko: order['store']?['address'] ?? '-',
+        pNToko: order['store']?['phone_number'] ?? '-',
         nota: order['receipt'] ?? '-',
         customerName: order['customer']?['nama'] ?? '-',
         customerPhone: order['customer']?['nomor_telepon'] ?? '-',
@@ -624,8 +624,8 @@ class _RincianPesananScreenState extends State<RincianPesananScreen> {
     try {
       final bytes = await receiptPrintService.generateNotaProduksi(
         storeName: order['store']?['store_name'] ?? '-',
-        alamatToko: order['store']?['alamat'] ?? '-',
-        pNToko: order['store']?['nomor_telepon'] ?? '-',
+        alamatToko: order['store']?['address'] ?? '-',
+        pNToko: order['store']?['phone_number'] ?? '-',
         nota: order['receipt'] ?? '-',
         customerName: order['customer']?['nama'] ?? '-',
         customerPhone: order['customer']?['nomor_telepon'] ?? '-',
