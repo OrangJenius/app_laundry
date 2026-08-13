@@ -89,7 +89,6 @@ class OrderModel {
       'antar_jemput_id': antar_jemput_id,
       'profile_id': profile_id,
       'discount_id': discount_id,
-      'created_at': created_at,
     };
   }
 
