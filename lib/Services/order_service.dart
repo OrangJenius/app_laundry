@@ -36,7 +36,7 @@ class OrderService {
   Future<List<dynamic>> fetchOrderById(String order_id) async {
     final response = await _supabase
         .from('order')
-        .select('*, customer(*), duration(duration_name), store(store_name), profiles(*), parfum(nama_parfum), antar_jemput(jarak)')
+        .select('*, customer(*), duration(duration_name), store(*), profiles(*), parfum(*), antar_jemput(*), diskon(*)')
         .eq('id', order_id);
         
     return response;

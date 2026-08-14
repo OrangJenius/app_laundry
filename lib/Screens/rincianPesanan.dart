@@ -98,7 +98,7 @@ class _RincianPesananScreenState extends State<RincianPesananScreen> {
       final durasiName = detail['service']?['duration']?['duration_name'] ?? '-';
       final qty = detail['quantity']?.toString() ?? '-';
       final unit = detail['service']?['unit']?['unit_name'] ?? '-';
-      final subtotal = _formatRupiah(detail['subtotal'] ?? 0);
+      final subtotal = _formatRupiah(_toInt(detail['subtotal']));
       return "$serviceName ($durasiName)\n$qty $unit = $subtotal";
     }).join('\n');
 
@@ -211,14 +211,14 @@ class _RincianPesananScreenState extends State<RincianPesananScreen> {
           final order = _toMap(await orderService.fetchOrderById(widget.order_id));
           final transaksi = _toMap(await transaksiService.fetchTransaksi2(widget.order_id));
 
-          final int totalHarga = order['total_harga'] ?? 0;
+          final int totalHarga = _toInt(order['total_harga']);
           final antarJemput = order['antar_jemput'] is Map
               ? order['antar_jemput'] as Map<String, dynamic>
-              : {};
-          final int antarJemputHarga = antarJemput['harga'] ?? 0;
+              : <String, dynamic>{};
+          final int antarJemputHarga = _toInt(antarJemput['harga']);
           final diskonMap = order['diskon'] is Map
               ? order['diskon'] as Map<String, dynamic>
-              : {};
+              : <String, dynamic>{};
           final int diskonNominal = _calculateDiscountNominal(totalHarga, diskonMap);
           final int totalBayar = totalHarga + antarJemputHarga - diskonNominal;
 
@@ -402,13 +402,31 @@ class _RincianPesananScreenState extends State<RincianPesananScreen> {
     }
   }
 
+  /// Safely coerces a dynamic value coming back from Supabase (which may be
+  /// int, num, String, or null depending on the column type / null FK) into
+  /// an int. Never throws — falls back to 0 for anything unparseable.
+  int _toInt(dynamic value) {
+    if (value == null) return 0;
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value.toString()) ?? 0;
+  }
+
+  /// Calculates the discount amount from a diskon map. Returns 0 when the
+  /// order has no diskon attached (discount_id was null, so the embedded
+  /// `diskon` relation comes back null/empty).
   int _calculateDiscountNominal(int totalHarga, dynamic diskon) {
-    if (diskon == null || diskon is! Map) return 0;
-    bool isPercent = diskon['tipe']?.toString().toLowerCase() == 'persen';
-    int jumlahDiskon = diskon['jumlah_diskon'] ?? 0;
-    if (isPercent) {
+    if (diskon == null || diskon is! Map || diskon.isEmpty) return 0;
+
+    // Matches the values used when the diskon is selected in AddPesanan2Screen:
+    // tipe_diskon == "Persentase" or "Nominal".
+    final String tipe = (diskon['tipe_diskon'] ?? '').toString().toLowerCase();
+    final int jumlahDiskon = _toInt(diskon['jumlah_diskon']);
+
+    if (tipe == 'persentase') {
       return (totalHarga * (jumlahDiskon / 100)).round();
     }
+    // Default / "nominal" case
     return jumlahDiskon;
   }
 
@@ -691,24 +709,27 @@ class _RincianPesananScreenState extends State<RincianPesananScreen> {
             final transaksi = _toMap(snapshot.data![3]);
             final notaModel = snapshot.data![4] as NotaModel?;
 
-            final int totalHarga = order['total_harga'] ?? 0;
+            // --- Safe numeric extraction, resilient to null FKs / string columns ---
+            final int totalHarga = _toInt(order['total_harga']);
+
             final antarJemput = order['antar_jemput'] is Map
                 ? order['antar_jemput'] as Map<String, dynamic>
-                : {};
-            final int antarJemputHarga = antarJemput['harga'] ?? 0;
+                : <String, dynamic>{};
+            final int antarJemputHarga = _toInt(antarJemput['harga']);
 
             final diskonMap = order['diskon'] is Map
                 ? order['diskon'] as Map<String, dynamic>
-                : {};
+                : <String, dynamic>{};
             final int diskonNominal =
                 _calculateDiscountNominal(totalHarga, diskonMap);
+
             final int totalBayar =
                 totalHarga + antarJemputHarga - diskonNominal;
 
             int maxHours = 0;
             if (orderDetailsList.isNotEmpty) {
               for (var detail in orderDetailsList) {
-                int hours = detail['service']?['duration']?['hours'] ?? 0;
+                int hours = _toInt(detail['service']?['duration']?['hours']);
                 if (hours > maxHours) maxHours = hours;
               }
             }
@@ -921,7 +942,7 @@ class _RincianPesananScreenState extends State<RincianPesananScreen> {
                                                   fontSize: 14,
                                                   fontWeight: FontWeight.bold)),
                                           Text(
-                                              "x ${_formatRupiah(orderDetail['price'] ?? 0)}",
+                                              "x ${_formatRupiah(_toInt(orderDetail['price']))}",
                                               style: const TextStyle(
                                                   fontSize: 12,
                                                   color: Colors.grey,
@@ -948,7 +969,7 @@ class _RincianPesananScreenState extends State<RincianPesananScreen> {
                                                   fontWeight: FontWeight.bold)),
                                           Text(
                                               _formatRupiah(
-                                                  orderDetail['subtotal'] ?? 0),
+                                                  _toInt(orderDetail['subtotal'])),
                                               style: const TextStyle(
                                                   fontSize: 12,
                                                   color: Colors.grey,
@@ -1002,9 +1023,13 @@ class _RincianPesananScreenState extends State<RincianPesananScreen> {
                                     ? "-"
                                     : order['catatan']),
                             const Divider(),
+                            // parfum_id may be null (user picked "Tidak" in
+                            // AddPesanan2Screen) -> order['parfum'] is null.
                             _buildInfoRow("Parfum",
                                 order['parfum']?['nama_parfum'] ?? '-'),
                             const Divider(),
+                            // antar_jemput_id may be null (user picked "Tidak")
+                            // -> antarJemput defaults to {} above, so this is safe.
                             _buildInfoRow(
                                 "Antar-Jemput",
                                 (antarJemput['jarak'] ?? '').isEmpty

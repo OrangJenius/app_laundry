@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:app_laundry/Models/antarJemputModel.dart';
 import 'package:app_laundry/Models/customerModel.dart';
+import 'package:app_laundry/Models/diskonModel.dart';
 import 'package:app_laundry/Models/profileModel.dart';
 
 class OrderModel {
@@ -22,6 +23,7 @@ class OrderModel {
   final Customer? customer;
   final AntarJemputModel? antar_jemput;
   final ProfileModel? profiles;
+  final DiskonModel? diskon;
 
   OrderModel({
     this.id,
@@ -39,6 +41,7 @@ class OrderModel {
     this.customer,
     this.antar_jemput,
     this.profiles,
+    this.diskon
   });
 
   OrderModel copyWith({
@@ -57,6 +60,7 @@ class OrderModel {
     Customer? customer,
     AntarJemputModel? antar_jemput,
     ProfileModel? profiles,
+    DiskonModel? diskon,
   }) {
     return OrderModel(
       id: id ?? this.id,
@@ -74,6 +78,7 @@ class OrderModel {
       customer: customer ?? this.customer,
       antar_jemput: antar_jemput ?? this.antar_jemput,
       profiles: profiles ?? this.profiles,
+      diskon: diskon ?? this.diskon,
     );
   }
 
@@ -108,6 +113,7 @@ class OrderModel {
       customer: map['customer'] != null ? Customer.fromMap(map['customer'] as Map<String,dynamic>) : null,
       antar_jemput: map['antar_jemput'] != null ? AntarJemputModel.fromMap(map['antar_jemput'] as Map<String,dynamic>) : null,
       profiles: map['profiles'] != null ? ProfileModel.fromMap(map['profiles'] as Map<String,dynamic>) : null,
+      diskon: map['diskon'] != null ? DiskonModel.fromMap(map['diskon'] as Map<String,dynamic>) : null,
     );
   }
 
@@ -117,7 +123,7 @@ class OrderModel {
 
   @override
   String toString() {
-    return 'OrderModel(id: $id, store_id: $store_id, receipt: $receipt, duration_id: $duration_id, customer_id: $customer_id, total_harga: $total_harga, catatan: $catatan, parfum_id: $parfum_id, antar_jemput_id: $antar_jemput_id, profile_id: $profile_id, discount_id: $discount_id, created_at: $created_at, customer: $customer, antar_jemput: $antar_jemput, profiles: $profiles)';
+    return 'OrderModel(id: $id, store_id: $store_id, receipt: $receipt, duration_id: $duration_id, customer_id: $customer_id, total_harga: $total_harga, catatan: $catatan, parfum_id: $parfum_id, antar_jemput_id: $antar_jemput_id, profile_id: $profile_id, discount_id: $discount_id, created_at: $created_at, customer: $customer, antar_jemput: $antar_jemput, profiles: $profiles, diskon: $diskon)';
   }
 
   @override
@@ -139,7 +145,8 @@ class OrderModel {
       other.created_at == created_at &&
       other.customer == customer &&
       other.antar_jemput == antar_jemput &&
-      other.profiles == profiles;
+      other.profiles == profiles &&
+      other.diskon == diskon;
   }
 
   @override
@@ -158,6 +165,7 @@ class OrderModel {
       created_at.hashCode ^
       customer.hashCode ^
       antar_jemput.hashCode ^
-      profiles.hashCode;
+      profiles.hashCode ^
+      diskon.hashCode;
   }
 }
