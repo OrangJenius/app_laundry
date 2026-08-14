@@ -12,9 +12,11 @@ import 'package:app_laundry/Services/receipt_print_service.dart';
 import 'package:app_laundry/Services/transaksi_service.dart';
 import 'package:app_laundry/Widgets/customUpperBarNoMenu.dart';
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:print_bluetooth_thermal/print_bluetooth_thermal.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher_string.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class RincianPesananScreen extends StatefulWidget {
   final String store_id;
@@ -478,80 +480,145 @@ class _RincianPesananScreenState extends State<RincianPesananScreen> {
   required int totalBayar,
   required String currentPembayaran,
   required int maxHours,
-}) {
-  showModalBottomSheet(
-    context: context,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-    ),
-    builder: (context) {
-      return SafeArea(
-        child: Wrap(
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12.0),
-              child: Center(
-                child: Text(
-                  "Pilih Jenis Nota",
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.grey[800]),
+  }) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Wrap(
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12.0),
+                child: Center(
+                  child: Text(
+                    "Pilih Jenis Nota",
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.grey[800]),
+                  ),
                 ),
               ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.receipt_long, color: Colors.amber),
-              title: const Text("Nota Pelanggan"),
-              subtitle: const Text("Berisi rincian harga & pembayaran"),
-              onTap: () {
-                Navigator.pop(context);
-                _printNotaPelanggan(
-                  order: order,
-                  orderDetailsList: orderDetailsList,
-                  notaModel: notaModel,
-                  totalBayar: totalBayar,
-                  currentPembayaran: currentPembayaran,
-                  maxHours: maxHours,
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.local_laundry_service, color: Colors.amber),
-              title: const Text("Nota Produksi"),
-              subtitle: const Text("Untuk staf, tanpa harga"),
-              onTap: () {
-                Navigator.pop(context);
-                _printNotaProduksi(
-                  order: order,
-                  orderDetailsList: orderDetailsList,
-                  maxHours: maxHours,
-                  totalBayar: totalBayar,
-                  currentPembayaran: currentPembayaran,
-                );
-              },
-            ),
-            const SizedBox(height: 8),
-          ],
-        ),
-      );
-    },
-  );
-}
+              ListTile(
+                leading: const Icon(Icons.receipt_long, color: Colors.amber),
+                title: const Text("Nota Pelanggan"),
+                subtitle: const Text("Berisi rincian harga & pembayaran"),
+                onTap: () {
+                  Navigator.pop(context);
+                  _printNotaPelanggan(
+                    order: order,
+                    orderDetailsList: orderDetailsList,
+                    notaModel: notaModel,
+                    totalBayar: totalBayar,
+                    currentPembayaran: currentPembayaran,
+                    maxHours: maxHours,
+                  );
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.local_laundry_service, color: Colors.amber),
+                title: const Text("Nota Produksi"),
+                subtitle: const Text("Untuk staf, tanpa harga"),
+                onTap: () {
+                  Navigator.pop(context);
+                  _printNotaProduksi(
+                    order: order,
+                    orderDetailsList: orderDetailsList,
+                    maxHours: maxHours,
+                    totalBayar: totalBayar,
+                    currentPembayaran: currentPembayaran,
+                  );
+                },
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
+  Future<bool> _requestBluetoothPermissions() async {
+    try {
+      Map<Permission, PermissionStatus> statuses = await [
+        Permission.bluetoothConnect,
+        Permission.bluetoothScan,
+        Permission.location,
+      ].request();
+
+      return statuses[Permission.bluetoothConnect]?.isGranted ?? false;
+    } catch (e) {
+      debugPrint("Permission request error: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Gagal meminta izin Bluetooth. Silakan restart aplikasi."),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return false;
+    }
+  }
+
+  void _showPermissionDeniedDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Izin Bluetooth Diperlukan"),
+        content: const Text(
+          "Aplikasi memerlukan izin 'Perangkat terdekat' (Nearby Devices) "
+          "untuk terhubung ke printer thermal. Silakan aktifkan di Pengaturan.",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Batal"),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              openAppSettings(); // Opens app settings page directly
+            },
+            child: const Text("Buka Pengaturan"),
+          ),
+        ],
+      ),
+    );
+  }
+  
   Future<bool> _ensurePrinterConnected() async {
+    final hasPermission = await _requestBluetoothPermissions();
+    if (!hasPermission) return false;
+    // 1. Fast path: Already connected
     final connected = await receiptPrintService.isConnected();
     if (connected) return true;
 
+    final prefs = await SharedPreferences.getInstance();
+    final savedMac = prefs.getString('saved_printer_mac');
+
+    // 2. Auto-reconnect if a printer was previously selected
+    if (savedMac != null && savedMac.isNotEmpty) {
+      _showLoadingSnackBar("Menghubungkan ke printer...");
+      final ok = await receiptPrintService.connectPrinter(savedMac);
+      _hideSnackBar();
+      
+      if (ok) return true;
+    }
+
+    // 3. Fetch paired devices
     final printers = await receiptPrintService.getPairedPrinters();
     if (!mounted) return false;
+
     if (printers.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Tidak ada printer terpasang. Sambungkan via Bluetooth Settings dulu."),
-          backgroundColor: Colors.red,
-        ),
+      _showSnackBar(
+        "Tidak ada printer terpasang. Sambungkan via Bluetooth Settings dulu.", 
+        Colors.red
       );
       return false;
     }
 
+    // 4. Show selection dialog if auto-reconnect failed or no saved device
     final picked = await showDialog<BluetoothInfo>(
       context: context,
       builder: (context) => AlertDialog(
@@ -564,9 +631,17 @@ class _RincianPesananScreenState extends State<RincianPesananScreen> {
             itemCount: printers.length,
             itemBuilder: (context, index) {
               final p = printers[index];
+              final isLastUsed = p.macAdress == savedMac; // Check typo in model if needed
               return ListTile(
+                leading: Icon(
+                  Icons.print, 
+                  color: isLastUsed ? Colors.amber : Colors.grey,
+                ),
                 title: Text(p.name),
                 subtitle: Text(p.macAdress),
+                trailing: isLastUsed 
+                    ? const Chip(label: Text('Terakhir', style: TextStyle(fontSize: 10))) 
+                    : null,
                 onTap: () => Navigator.pop(context, p),
               );
             },
@@ -576,13 +651,54 @@ class _RincianPesananScreenState extends State<RincianPesananScreen> {
     );
 
     if (picked == null || !mounted) return false;
+
+    // 5. Connect to picked device with progress feedback
+    _showLoadingSnackBar("Menghubungkan ke ${picked.name}...");
     final ok = await receiptPrintService.connectPrinter(picked.macAdress);
-    if (!ok && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Gagal terhubung ke printer"), backgroundColor: Colors.red),
-      );
+    _hideSnackBar();
+
+    if (ok) {
+      // Save MAC address for future auto-connection
+      await prefs.setString('saved_printer_mac', picked.macAdress);
+      _showSnackBar("Terhubung ke ${picked.name}", Colors.green);
+    } else if (mounted) {
+      _showSnackBar("Gagal terhubung ke printer", Colors.red);
     }
+
     return ok;
+  }
+
+  // Helpers for SnackBar management
+  void _showSnackBar(String message, Color color) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: color),
+    );
+  }
+
+  void _showLoadingSnackBar(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        duration: const Duration(seconds: 10),
+        content: Row(
+          children: [
+            const SizedBox(
+              width: 20, 
+              height: 20, 
+              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)
+            ),
+            const SizedBox(width: 16),
+            Text(message),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _hideSnackBar() {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
   }
 
   Future<void> _printNotaPelanggan({
