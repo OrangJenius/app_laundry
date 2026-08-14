@@ -110,6 +110,7 @@ class _AddPesanan2ScreenState extends State<AddPesanan2Screen> {
     return _itemCounts.values.fold(0, (sum, count) => sum + count);
   }
 
+  /// Base total from selected services only (qty * price)
   int _calculateTotalHarga(List<dynamic> services) {
     int total = 0;
     for (var service in services) {
@@ -119,6 +120,35 @@ class _AddPesanan2ScreenState extends State<AddPesanan2Screen> {
       total += (count * harga);
     }
     return total;
+  }
+
+  /// Final total factoring in antar-jemput cost and diskon on top of the base service total.
+  /// Called every modal rebuild so it stays live as the user changes selections.
+  int _calculateFinalTotal(int baseTotal) {
+    int total = baseTotal;
+
+    // Add antar-jemput (ongkir) cost, if selected
+    if (_selectedAntarJemput != null) {
+      int ongkir = int.tryParse(_selectedAntarJemput.harga.toString()) ?? 0;
+      total += ongkir;
+    }
+
+    // Apply diskon, if selected
+    if (_selectedDiskon != null) {
+      int jumlahDiskon =
+          int.tryParse(_selectedDiskon.jumlah_diskon.toString()) ?? 0;
+      if (_selectedDiskon.tipe_diskon == "Persentase") {
+        total -= (total * jumlahDiskon ~/ 100);
+      } else if (_selectedDiskon.tipe_diskon == "Nominal") {
+        total -= jumlahDiskon;
+      }
+    }
+
+    return total < 0 ? 0 : total;
+  }
+
+  String _formatRupiah(int value) {
+    return "Rp. ${value.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')}";
   }
 
   /// Process creating the order and its associated detail, status, and transaction models
@@ -225,7 +255,7 @@ class _AddPesanan2ScreenState extends State<AddPesanan2Screen> {
   }
 
   // --- MODAL BOTTOM SHEET: ATUR PESANAN ---
-  void _showPesananMenu(BuildContext context, int totalHarga, List<dynamic> services) {
+  void _showPesananMenu(BuildContext context, int baseTotalHarga, List<dynamic> services) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -236,6 +266,10 @@ class _AddPesanan2ScreenState extends State<AddPesanan2Screen> {
       builder: (context) {
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setModalState) {
+            // Recalculated on every setModalState call, so it stays live
+            // as the user changes antar-jemput / diskon selections.
+            final int finalTotal = _calculateFinalTotal(baseTotalHarga);
+
             return Padding(
               padding: EdgeInsets.only(
                 top: 20.0,
@@ -281,16 +315,20 @@ class _AddPesanan2ScreenState extends State<AddPesanan2Screen> {
                         if (!snapshot.hasData) {
                           return _buildLoadingDropdown();
                         }
-                        final items = snapshot.data!;
-                        if (_selectedParfum == null && items.isNotEmpty) {
-                          _selectedParfum = items.first;
-                        }
+                        final rawItems = snapshot.data!;
+                        final items = <dynamic>[null, ...rawItems];
 
                         return _buildDropdownField<dynamic>(
                           value: _selectedParfum,
                           items: items,
-                          itemLabel: (item) => item.nama_parfum ?? item.toString(),
-                          onChanged: (val) => setModalState(() => _selectedParfum = val),
+                          itemLabel: (item) {
+                            if (item == null) {
+                              return "Tidak";
+                            }
+                            return item.nama_parfum ?? item.toString();
+                          },
+                          onChanged: (val) =>
+                              setModalState(() => _selectedParfum = val),
                         );
                       },
                     ),
@@ -304,20 +342,23 @@ class _AddPesanan2ScreenState extends State<AddPesanan2Screen> {
                         if (!snapshot.hasData) {
                           return _buildLoadingDropdown();
                         }
-                        final items = snapshot.data!;
-                        if (_selectedAntarJemput == null && items.isNotEmpty) {
-                          _selectedAntarJemput = items.first;
-                        }
+                        final rawItems = snapshot.data!;
+                        final items = <dynamic>[null, ...rawItems];
 
                         return _buildDropdownField<dynamic>(
                           value: _selectedAntarJemput,
                           items: items,
                           itemLabel: (item) {
+                            if (item == null) {
+                              return "Tidak";
+                            }
                             String name = item.jarak ?? '';
-                            String price = item.harga != null ? " - Rp. ${item.harga}" : "";
+                            String price =
+                                item.harga != null ? " - Rp. ${item.harga}" : "";
                             return "$name$price";
                           },
-                          onChanged: (val) => setModalState(() => _selectedAntarJemput = val),
+                          onChanged: (val) =>
+                              setModalState(() => _selectedAntarJemput = val),
                         );
                       },
                     ),
@@ -349,7 +390,8 @@ class _AddPesanan2ScreenState extends State<AddPesanan2Screen> {
                             }
                             return item.jumlah_diskon.toString();
                           },
-                          onChanged: (val) => setModalState(() => _selectedDiskon = val),
+                          onChanged: (val) =>
+                              setModalState(() => _selectedDiskon = val),
                         );
                       },
                     ),
@@ -373,7 +415,34 @@ class _AddPesanan2ScreenState extends State<AddPesanan2Screen> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 24.0),
+                    const SizedBox(height: 20.0),
+
+                    // Live total summary, reacts to antar-jemput / diskon changes
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[850],
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            "Total",
+                            style: TextStyle(color: Colors.grey, fontSize: 13),
+                          ),
+                          Text(
+                            _formatRupiah(finalTotal),
+                            style: const TextStyle(
+                              color: Colors.amber,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16.0),
 
                     // 5. Tombol Buat Pesanan
                     SizedBox(
@@ -384,7 +453,7 @@ class _AddPesanan2ScreenState extends State<AddPesanan2Screen> {
                             ? null
                             : () async {
                                 Navigator.pop(context); // Close modal
-                                await addPesanan(totalHarga, services);
+                                await addPesanan(finalTotal, services);
                               },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.amber,
@@ -495,6 +564,9 @@ class _AddPesanan2ScreenState extends State<AddPesanan2Screen> {
             }
 
             final services = snapshot.data ?? [];
+            // Base total from services only. Antar-jemput cost and diskon
+            // are applied live inside the "Atur Pesanan" modal via
+            // _calculateFinalTotal, since those selections happen there.
             int totalHarga = _calculateTotalHarga(services);
 
             return Column(
@@ -684,7 +756,7 @@ class _AddPesanan2ScreenState extends State<AddPesanan2Screen> {
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Text(
-                                    "Rp. ${totalHarga.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')}",
+                                    _formatRupiah(totalHarga),
                                     style: const TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.bold),
                                   ),
                                   const Text(
