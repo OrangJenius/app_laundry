@@ -1,6 +1,4 @@
-import 'package:app_laundry/Screens/detailLaporanPesanan.dart';
 import 'package:app_laundry/Screens/editCustomer.dart';
-import 'package:app_laundry/Screens/rincianPesanan.dart';
 import 'package:app_laundry/Screens/riwayatPesanan.dart';
 import 'package:app_laundry/Services/customer_service.dart';
 import 'package:flutter/material.dart';
@@ -197,6 +195,7 @@ class _CustomCustomerState extends State<CustomCustomer> {
                               nama: widget.name, 
                               alamat: widget.address, 
                               phone: widget.phone_number,
+                              store_id: widget.store_id,
                             ),
                           ),
                         );

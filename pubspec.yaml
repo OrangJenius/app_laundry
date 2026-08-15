@@ -43,6 +43,7 @@ dependencies:
   path_provider: ^2.1.5
   permission_handler: ^13.0.1
   share_plus: ^12.0.2
+  flutter_classic_bluetooth: ^0.1.8
 
 dependency_overrides:
   permission_handler_android: ^13.0.1

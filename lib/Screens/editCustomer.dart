@@ -9,6 +9,7 @@ class EditCustomerScreen extends StatefulWidget {
   final String nama;
   final String alamat;
   final String phone;
+  final String store_id;
 
   const EditCustomerScreen({
     super.key,
@@ -16,6 +17,7 @@ class EditCustomerScreen extends StatefulWidget {
     required this.nama,
     required this.alamat,
     required this.phone,
+    required this.store_id,
   });
 
   @override
@@ -57,6 +59,7 @@ class _EditCustomerScreenState extends State<EditCustomerScreen> {
       nama: _namaController.text,
       alamat: _alamatController.text,
       phoneNumber: _phoneController.text,
+      store_id: widget.store_id,
     );
 
     try {

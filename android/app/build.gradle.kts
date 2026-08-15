@@ -12,7 +12,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.app_laundry"
-        minSdk = 23
+        minSdk = 24
         targetSdk = flutter.targetSdkVersion
         
         // Update these two lines right here:

@@ -248,7 +248,7 @@ class CustomCustomerCard extends StatelessWidget {
                     child: ElevatedButton.icon(
                       onPressed: () {
                         Navigator.pop(context); // Tutup bottom sheet customer menu
-                        Navigator.push(context, MaterialPageRoute(builder: (context) => EditCustomerScreen(id: this.id, nama: this.name, alamat: this.address, phone: this.phone_number,)));
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => EditCustomerScreen(id: this.id, nama: this.name, alamat: this.address, phone: this.phone_number, store_id: this.store_id,)));
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.blue,

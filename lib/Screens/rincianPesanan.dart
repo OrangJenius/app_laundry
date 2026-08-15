@@ -586,7 +586,168 @@ class _RincianPesananScreenState extends State<RincianPesananScreen> {
       ),
     );
   }
-  
+
+  /// Standalone printer picker — reachable any time (not just when printing).
+  /// Shows every paired device, which one (if any) is currently connected,
+  /// and lets the user tap any device to connect to it directly. On success
+  /// it's saved as the default for future auto-reconnect via
+  /// `_ensurePrinterConnected`.
+  Future<void> _showPrinterSelectionModal() async {
+    final hasPermission = await _requestBluetoothPermissions();
+    if (!hasPermission) {
+      if (mounted) _showPermissionDeniedDialog();
+      return;
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    List<BluetoothInfo> printers = await receiptPrintService.getPairedPrinters();
+    String? savedMac = prefs.getString('saved_printer_mac');
+    bool isConnected = await receiptPrintService.isConnected();
+
+    if (!mounted) return;
+
+    if (printers.isEmpty) {
+      _showSnackBar(
+        "Tidak ada printer terpasang. Sambungkan via Bluetooth Settings dulu.",
+        Colors.red,
+      );
+      return;
+    }
+
+    // Tracks which device row is mid-connect, purely for the spinner.
+    String? connectingMac;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            // Look up the connected device's name (if we have one saved and
+            // it's currently connected) for a friendlier status line.
+            final connectedName = isConnected
+                ? printers
+                    .where((p) => p.macAdress == savedMac)
+                    .map((p) => p.name)
+                    .firstOrNullOrDash()
+                : null;
+
+            Future<void> _connectTo(BluetoothInfo device) async {
+              setModalState(() => connectingMac = device.macAdress);
+              final ok = await receiptPrintService.connectPrinter(device.macAdress);
+              if (ok) {
+                await prefs.setString('saved_printer_mac', device.macAdress);
+                savedMac = device.macAdress;
+                isConnected = true;
+              }
+              setModalState(() => connectingMac = null);
+              if (mounted) {
+                _showSnackBar(
+                  ok ? "Terhubung ke ${device.name}" : "Gagal terhubung ke ${device.name}",
+                  ok ? Colors.green : Colors.red,
+                );
+              }
+            }
+
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        margin: const EdgeInsets.only(bottom: 16),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[400],
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    Center(
+                      child: Text(
+                        "Pilih Printer",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: Colors.grey[800],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(
+                          isConnected ? Icons.bluetooth_connected : Icons.bluetooth_disabled,
+                          size: 18,
+                          color: isConnected ? Colors.green : Colors.grey,
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            isConnected
+                                ? "Terhubung ke ${connectedName ?? 'printer'}"
+                                : "Tidak ada printer terhubung",
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: isConnected ? Colors.green[700] : Colors.grey[600],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxHeight: MediaQuery.of(context).size.height * 0.5,
+                      ),
+                      child: ListView.separated(
+                        shrinkWrap: true,
+                        itemCount: printers.length,
+                        separatorBuilder: (context, index) => const Divider(height: 1),
+                        itemBuilder: (context, index) {
+                          final p = printers[index];
+                          final isThisConnected = isConnected && p.macAdress == savedMac;
+                          final isThisConnecting = connectingMac == p.macAdress;
+
+                          return ListTile(
+                            leading: Icon(
+                              Icons.print,
+                              color: isThisConnected ? Colors.green : Colors.grey,
+                            ),
+                            title: Text(p.name),
+                            subtitle: Text(p.macAdress),
+                            trailing: isThisConnecting
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  )
+                                : (isThisConnected
+                                    ? const Icon(Icons.check_circle, color: Colors.green)
+                                    : null),
+                            onTap: connectingMac != null ? null : () => _connectTo(p),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   Future<bool> _ensurePrinterConnected() async {
     final hasPermission = await _requestBluetoothPermissions();
     if (!hasPermission) return false;
@@ -992,6 +1153,13 @@ class _RincianPesananScreenState extends State<RincianPesananScreen> {
                                     padding: const EdgeInsets.all(8.0),
                                   ),
                                   IconButton(
+                                    onPressed: _showPrinterSelectionModal,
+                                    icon: const Icon(Icons.settings_bluetooth, color: Colors.white),
+                                    constraints: const BoxConstraints(),
+                                    padding: const EdgeInsets.all(8.0),
+                                    tooltip: "Pilih Printer",
+                                  ),
+                                  IconButton(
                                     onPressed: () => _showPrintModal(
                                       order: order,
                                       orderDetailsList: orderDetailsList,
@@ -1277,4 +1445,11 @@ class _RincianPesananScreenState extends State<RincianPesananScreen> {
       ],
     );
   }
+}
+
+/// Small helper extension used by the printer-selection modal to safely pull
+/// a single name out of a filtered Iterable<String> without needing a
+/// separate null-check dance at the call site.
+extension _FirstOrDash on Iterable<String> {
+  String? firstOrNullOrDash() => isEmpty ? null : first;
 }
