@@ -3,7 +3,7 @@ import 'package:app_laundry/Models/storeModel.dart';
 import 'package:app_laundry/Screens/addPesanan.dart';
 import 'package:app_laundry/Screens/customers.dart';
 import 'package:app_laundry/Screens/dashboardKasir.dart';
-import 'package:app_laundry/Screens/mutasiKas.dart';
+import 'package:app_laundry/Screens/kasirNavigation.dart';
 import 'package:app_laundry/Services/auth_service.dart';
 import 'package:app_laundry/Services/kasir_service.dart';
 import 'package:app_laundry/Services/orderDetail_service.dart';
@@ -26,8 +26,14 @@ class _KasirMenuScreenState extends State<KasirMenuScreen> {
   final orderDetailService = OrderDetailService();
   final cashierService = KasirService();
   final storeService = StoreService();
-  late final KasirModel kasirModel;
-  late final StoreModel storeModel;
+
+  // Changed from `late final` to nullable: async fetches can't guarantee
+  // these are set before the first build() call, so `late final` throws
+  // LateInitializationError on first render. Nullable + setState() lets
+  // build() check for null and show a loading state instead of crashing.
+  KasirModel? kasirModel;
+  StoreModel? storeModel;
+
   Future<List<dynamic>>? _combinedFuture;
 
   final authService = AuthService();
@@ -70,24 +76,35 @@ class _KasirMenuScreenState extends State<KasirMenuScreen> {
     });
   }
 
-  void fetchCashier()async{
-    try{
-      kasirModel = (await cashierService.fetchOneCashier(widget.cashier_id))!;
-    }catch(e){
-      if(mounted){
+  void fetchCashier() async {
+    try {
+      final result = await cashierService.fetchOneCashier(widget.cashier_id);
+      if (mounted) {
+        setState(() {
+          kasirModel = result;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Gagal mengambil data kasir, error: $e"), backgroundColor: Colors.red,)
+          SnackBar(content: Text("Gagal mengambil data kasir, error: $e"), backgroundColor: Colors.red),
         );
       }
     }
   }
-  void fetchStore()async{
-    try{
-      storeModel = (await storeService.fetchStoreWithId(widget.store_id))!;
-    }catch(e){
-      if(mounted){
+
+  void fetchStore() async {
+    try {
+      final result = await storeService.fetchStoreWithId(widget.store_id);
+      if (mounted) {
+        setState(() {
+          storeModel = result;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Gagal mengambil data toko, error: $e"), backgroundColor: Colors.red,)
+          SnackBar(content: Text("Gagal mengambil data toko, error: $e"), backgroundColor: Colors.red),
         );
       }
     }
@@ -97,6 +114,7 @@ class _KasirMenuScreenState extends State<KasirMenuScreen> {
   void initState() {
     super.initState();
     fetchCashier();
+    fetchStore(); // was missing before — this is what caused the crash
     fetchOrder();
   }
 
@@ -105,8 +123,10 @@ class _KasirMenuScreenState extends State<KasirMenuScreen> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.store_id != widget.store_id) {
       fetchOrder();
+      fetchStore();
     }
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -121,27 +141,33 @@ class _KasirMenuScreenState extends State<KasirMenuScreen> {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
-                  child: Row(
-                    children: 
-                    [
-                      Icon(Icons.store),
-                      Column(
-                        children: [
-                          Text(storeModel.store_name!),
-                          Text(storeModel.address!),
-                          Text(storeModel.phone_number!)
-                        ],
-                      ),
-                      Card(
-                        child: Row(
+                  child: (storeModel == null || kasirModel == null)
+                      ? const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 16.0),
+                          child: Center(
+                            child: CircularProgressIndicator(color: Colors.amber),
+                          ),
+                        )
+                      : Row(
                           children: [
-                            Text(kasirModel.cashier_name),
-                            Icon(Icons.online_prediction),
+                            const Icon(Icons.store),
+                            Column(
+                              children: [
+                                Text(storeModel!.store_name ?? '-'),
+                                Text(storeModel!.address ?? '-'),
+                                Text(storeModel!.phone_number ?? '-'),
+                              ],
+                            ),
+                            Card(
+                              child: Row(
+                                children: [
+                                  Text(kasirModel!.cashier_name),
+                                  const Icon(Icons.online_prediction),
+                                ],
+                              ),
+                            )
                           ],
                         ),
-                      )
-                    ],
-                  ),
                 ),
               ),
 
@@ -190,11 +216,13 @@ class _KasirMenuScreenState extends State<KasirMenuScreen> {
                           // 2. Aggregate quantities by unit name from order_detail
                           for (var detail in details) {
                             final qty = double.tryParse(detail['quantity']?.toString() ?? '0') ?? 0.0;
-                            
+
                             // Check unit_name if joined, or service relationship
-                            final unitName = (detail['unit']?['unit_name'] ?? 
-                                              detail['service']?['unit']?['unit_name'] ?? 
-                                              '').toString().toLowerCase();
+                            final unitName = (detail['unit']?['unit_name'] ??
+                                    detail['service']?['unit']?['unit_name'] ??
+                                    '')
+                                .toString()
+                                .toLowerCase();
 
                             if (unitName.contains('kg') || unitName.contains('kilo')) {
                               kiloanQty += qty;
@@ -221,74 +249,67 @@ class _KasirMenuScreenState extends State<KasirMenuScreen> {
 
               const SizedBox(height: 24),
 
-              Card(
-                child: Row(
-                  children: [
-                    IconButton.filled(onPressed: (){Navigator.push(context, MaterialPageRoute(builder: (context)=>AddPesananScreen(store_id: widget.store_id)));}, icon: Icon(Icons.add)),
-                    Column(
-                      children: [
-                        Text("Tambah Pesanan", style: TextStyle(fontWeight: FontWeight.bold),),
-                        Text("Buat Pesanan Baru", style: TextStyle(fontStyle: FontStyle.italic),),
-                      ],
-                    ),
-                  ],
-                ),
+              _buildMenuItem(
+                icon: Icons.add_shopping_cart,
+                title: "Tambah Pesanan",
+                subtitle: "Buat Pesanan Baru",
+                onTap: () {
+                  Navigator.push(context,
+                      MaterialPageRoute(builder: (context) => AddPesananScreen(store_id: widget.store_id)));
+                },
               ),
-              Card(
-                child: Row(
-                  children: [
-                    IconButton.filled(onPressed: (){Navigator.push(context, MaterialPageRoute(builder: (context)=>DashboardKasirScreen(selectedStoreId: widget.store_id)));}, icon: Icon(Icons.search)),
-                    Column(
-                      children: [
-                        Text("Cari Pesanan", style: TextStyle(fontWeight: FontWeight.bold),),
-                        Text("Pencarian Pesanan", style: TextStyle(fontStyle: FontStyle.italic),),
-                      ],
-                    ),
-                  ],
-                ),
+              _buildMenuItem(
+                icon: Icons.search,
+                title: "Cari Pesanan",
+                subtitle: "Pencarian Pesanan",
+                onTap: () {
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => KasirNavigationScreen(currentPageIndex: 0, store_id: widget.store_id, cashier_id: widget.cashier_id,)));
+                },
               ),
-              Card(
-                child: Row(
-                  children: [
-                    IconButton.filled(onPressed: (){Navigator.push(context, MaterialPageRoute(builder: (context)=>CustomerScreen(store_id: widget.store_id)));}, icon: Icon(Icons.add)),
-                    Column(
-                      children: [
-                        Text("Data Pelanggan", style: TextStyle(fontWeight: FontWeight.bold),),
-                        Text("Kelola Data Pelanggan", style: TextStyle(fontStyle: FontStyle.italic),),
-                      ],
-                    ),
-                  ],
-                ),
+              _buildMenuItem(
+                icon: Icons.people_alt_outlined,
+                title: "Data Pelanggan",
+                subtitle: "Kelola Data Pelanggan",
+                onTap: () {
+                  Navigator.push(
+                      context, MaterialPageRoute(builder: (context) => CustomerScreen(store_id: widget.store_id)));
+                },
               ),
-              _buildMenuLaporan(
+              _buildMenuItem(
                 icon: Icons.monetization_on_outlined,
                 title: "Laporan Kas",
                 subtitle: "Laporan Mutasi Kas",
-                dialog: CustomDateRangeDialogMutasi(
-                  onSubmit: (DateTimeRange periode) {
-                    print("Toko Aktif: ${widget.store_id} | Periode: ${periode.start} - ${periode.end}");
-                  }, store_id: widget.store_id,
-                ),
-              ),
-              Card(
-                child: Row(
-                  children: [
-                    IconButton.filled(onPressed: (){logout();}, icon: Icon(Icons.power_off)),
-                    Column(
-                      children: [
-                        Text("Keluar Akun", style: TextStyle(fontWeight: FontWeight.bold),),
-                        Text("Keluar Dari Akun Kasir", style: TextStyle(fontStyle: FontStyle.italic),),
-                      ],
+                onTap: () {
+                  showDialog(
+                    context: context,
+                    builder: (BuildContext context) => CustomDateRangeDialogMutasi(
+                      onSubmit: (DateTimeRange periode) {
+                        print("Toko Aktif: ${widget.store_id} | Periode: ${periode.start} - ${periode.end}");
+                      },
+                      store_id: widget.store_id,
                     ),
-                  ],
-                ),
+                  );
+                },
               ),
+              _buildMenuItem(
+                icon: Icons.power_settings_new,
+                title: "Keluar Akun",
+                subtitle: "Keluar Dari Akun Kasir",
+                onTap: () {
+                  logout();
+                },
+              ),
+              const SizedBox(height: 12),
             ],
           ),
-        )
+        ),
       ),
     );
   }
+
   Widget _buildSummaryCard({
     required double totalRevenue,
     required int totalOrders,
@@ -376,17 +397,24 @@ class _KasirMenuScreenState extends State<KasirMenuScreen> {
       ],
     );
   }
-  Widget _buildMenuLaporan({
+
+  // Shared menu item style — same look used across the whole menu list
+  // (icon-in-amber-box + title/subtitle + chevron), so every entry (Tambah
+  // Pesanan, Cari Pesanan, Data Pelanggan, Laporan Kas, Keluar Akun) is
+  // visually consistent instead of some using Card+IconButton and others
+  // using ListTile.
+  Widget _buildMenuItem({
     required IconData icon,
     required String title,
     required String subtitle,
-    required Widget dialog,
+    required VoidCallback onTap,
   }) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
       child: Card(
         color: Colors.white,
         elevation: 2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: ListTile(
           leading: Container(
             padding: const EdgeInsets.all(6.0),
@@ -396,12 +424,7 @@ class _KasirMenuScreenState extends State<KasirMenuScreen> {
           title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black)),
           subtitle: Text(subtitle, style: const TextStyle(color: Colors.black38, fontSize: 12, fontStyle: FontStyle.italic)),
           trailing: const Icon(Icons.chevron_right, color: Colors.grey),
-          onTap: () {
-            showDialog(
-              context: context,
-              builder: (BuildContext context) => dialog,
-            );
-          },
+          onTap: onTap,
         ),
       ),
     );
