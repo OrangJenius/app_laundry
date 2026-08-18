@@ -2,7 +2,6 @@ import 'package:app_laundry/Models/kasirModel.dart';
 import 'package:app_laundry/Models/storeModel.dart';
 import 'package:app_laundry/Screens/addPesanan.dart';
 import 'package:app_laundry/Screens/customers.dart';
-import 'package:app_laundry/Screens/dashboardKasir.dart';
 import 'package:app_laundry/Screens/kasirNavigation.dart';
 import 'package:app_laundry/Services/auth_service.dart';
 import 'package:app_laundry/Services/kasir_service.dart';
@@ -27,10 +26,6 @@ class _KasirMenuScreenState extends State<KasirMenuScreen> {
   final cashierService = KasirService();
   final storeService = StoreService();
 
-  // Changed from `late final` to nullable: async fetches can't guarantee
-  // these are set before the first build() call, so `late final` throws
-  // LateInitializationError on first render. Nullable + setState() lets
-  // build() check for null and show a loading state instead of crashing.
   KasirModel? kasirModel;
   StoreModel? storeModel;
 
@@ -44,7 +39,7 @@ class _KasirMenuScreenState extends State<KasirMenuScreen> {
 
   void fetchOrder() {
     final storeId = widget.store_id;
-    if (storeId == null || storeId.isEmpty) {
+    if (storeId.isEmpty) {
       setState(() {
         _combinedFuture = null;
       });
@@ -53,7 +48,6 @@ class _KasirMenuScreenState extends State<KasirMenuScreen> {
 
     setState(() {
       _combinedFuture = () async {
-        // Step 1: Fetch Orders by Store ID for Today
         final orders = await orderService.fetchOrderNow(
           widget.store_id,
           DateTime.now(),
@@ -63,10 +57,8 @@ class _KasirMenuScreenState extends State<KasirMenuScreen> {
           return [<dynamic>[], <dynamic>[]];
         }
 
-        // Step 2: Extract Order IDs cleanly as List<dynamic>
         final List<String> orderIds = orders.map((o) => o['id'].toString()).toList();
 
-        // Step 3: Fetch related order details concurrently
         final results = await Future.wait([
           orderDetailService.fetchOrderDetailByOrderIds(orderIds),
         ]);
@@ -114,7 +106,7 @@ class _KasirMenuScreenState extends State<KasirMenuScreen> {
   void initState() {
     super.initState();
     fetchCashier();
-    fetchStore(); // was missing before — this is what caused the crash
+    fetchStore();
     fetchOrder();
   }
 
@@ -133,14 +125,16 @@ class _KasirMenuScreenState extends State<KasirMenuScreen> {
       backgroundColor: Colors.grey[900],
       body: SafeArea(
         child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
           child: Column(
             children: [
+              // --- CARD HEADER TOKO & KASIR (SUDAH DIRAPIKAN) ---
               Card(
                 color: Colors.white,
-                elevation: 2,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                elevation: 3,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
+                  padding: const EdgeInsets.all(12.0),
                   child: (storeModel == null || kasirModel == null)
                       ? const Padding(
                           padding: EdgeInsets.symmetric(vertical: 16.0),
@@ -149,29 +143,97 @@ class _KasirMenuScreenState extends State<KasirMenuScreen> {
                           ),
                         )
                       : Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            const Icon(Icons.store),
-                            Column(
-                              children: [
-                                Text(storeModel!.store_name ?? '-'),
-                                Text(storeModel!.address ?? '-'),
-                                Text(storeModel!.phone_number ?? '-'),
-                              ],
+                            // Icon Toko dengan aksen warna
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: Colors.amber.shade100,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.store, color: Colors.amber, size: 26),
                             ),
-                            Card(
-                              child: Row(
+                            const SizedBox(width: 12),
+
+                            // Detail Info Toko
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Text(kasirModel!.cashier_name),
-                                  const Icon(Icons.online_prediction),
+                                  Text(
+                                    storeModel!.store_name ?? '-',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 15,
+                                      color: Colors.black87,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    storeModel!.address ?? '-',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey[700],
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Row(
+                                    children: [
+                                      const Icon(Icons.phone, size: 12, color: Colors.grey),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        storeModel!.phone_number ?? '-',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: Colors.grey[600],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ],
                               ),
-                            )
+                            ),
+
+                            const SizedBox(width: 8),
+
+                            // Badge Profil Kasir Online
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: Colors.grey[100],
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: Colors.grey.shade300),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.account_circle, size: 16, color: Colors.black54),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    kasirModel!.cashier_name,
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.black87,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  const Icon(Icons.circle, size: 8, color: Colors.green),
+                                ],
+                              ),
+                            ),
                           ],
                         ),
                 ),
               ),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
 
               // --- TODAY'S ORDERS SUMMARY CARD ---
               _combinedFuture == null
@@ -194,7 +256,6 @@ class _KasirMenuScreenState extends State<KasirMenuScreen> {
                           );
                         }
 
-                        // Default fallback values if no orders exist
                         double totalRevenue = 0.0;
                         int totalOrders = 0;
                         double kiloanQty = 0.0;
@@ -207,17 +268,14 @@ class _KasirMenuScreenState extends State<KasirMenuScreen> {
 
                           totalOrders = orders.length;
 
-                          // 1. Calculate Total Revenue
                           for (var order in orders) {
                             final price = double.tryParse(order['total_harga']?.toString() ?? '0') ?? 0.0;
                             totalRevenue += price;
                           }
 
-                          // 2. Aggregate quantities by unit name from order_detail
                           for (var detail in details) {
                             final qty = double.tryParse(detail['quantity']?.toString() ?? '0') ?? 0.0;
 
-                            // Check unit_name if joined, or service relationship
                             final unitName = (detail['unit']?['unit_name'] ??
                                     detail['service']?['unit']?['unit_name'] ??
                                     '')
@@ -231,7 +289,6 @@ class _KasirMenuScreenState extends State<KasirMenuScreen> {
                             } else if (unitName.contains('m') || unitName.contains('meter')) {
                               meteranQty += qty;
                             } else {
-                              // Default backup fallback to pcs if unit is unmapped
                               satuanQty += qty;
                             }
                           }
@@ -247,7 +304,7 @@ class _KasirMenuScreenState extends State<KasirMenuScreen> {
                       },
                     ),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
 
               _buildMenuItem(
                 icon: Icons.add_shopping_cart,
@@ -264,9 +321,11 @@ class _KasirMenuScreenState extends State<KasirMenuScreen> {
                 subtitle: "Pencarian Pesanan",
                 onTap: () {
                   Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => KasirNavigationScreen(currentPageIndex: 0, store_id: widget.store_id, cashier_id: widget.cashier_id,)));
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => KasirNavigationScreen(currentPageIndex: 0, store_id: widget.store_id, cashier_id: widget.cashier_id,)
+                    )
+                  );
                 },
               ),
               _buildMenuItem(
@@ -317,7 +376,6 @@ class _KasirMenuScreenState extends State<KasirMenuScreen> {
     required double satuanQty,
     required double meteranQty,
   }) {
-    // Format numeric values cleanly
     final formattedRevenue = totalRevenue.toStringAsFixed(0).replaceAllMapped(
           RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
           (Match m) => '${m[1]}.',
@@ -398,11 +456,6 @@ class _KasirMenuScreenState extends State<KasirMenuScreen> {
     );
   }
 
-  // Shared menu item style — same look used across the whole menu list
-  // (icon-in-amber-box + title/subtitle + chevron), so every entry (Tambah
-  // Pesanan, Cari Pesanan, Data Pelanggan, Laporan Kas, Keluar Akun) is
-  // visually consistent instead of some using Card+IconButton and others
-  // using ListTile.
   Widget _buildMenuItem({
     required IconData icon,
     required String title,
@@ -410,7 +463,7 @@ class _KasirMenuScreenState extends State<KasirMenuScreen> {
     required VoidCallback onTap,
   }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Card(
         color: Colors.white,
         elevation: 2,
