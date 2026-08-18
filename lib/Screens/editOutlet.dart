@@ -1,7 +1,13 @@
+import 'package:app_laundry/Models/storeModel.dart';
+import 'package:app_laundry/Services/store_service.dart';
 import 'package:flutter/material.dart';
 import 'package:app_laundry/Widgets/customUpperBarNoMenu.dart';
 
 class EditOutletScreen extends StatefulWidget {
+  final String id;
+  final String owner_id;
+
+  const EditOutletScreen({super.key, required this.id, required this.owner_id});
   @override
   _EditOutletScreenState createState() => _EditOutletScreenState();
 }
@@ -11,6 +17,27 @@ class _EditOutletScreenState extends State<EditOutletScreen> {
   final TextEditingController _namaController = TextEditingController();
   final TextEditingController _alamatController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
+
+  final store_service = StoreService();
+
+  void editStore() async{
+    try{
+      final newStore = StoreModel(owner_id: widget.owner_id, store_name: _namaController.text, address: _alamatController.text, phone_number: _phoneController.text);
+      await store_service.editStore(widget.id, newStore);
+      if(mounted){
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Data berhasil diubah!"), backgroundColor: Colors.green,)
+        );
+        Navigator.pop(context);
+      }
+    }catch(e){
+      if(mounted){
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Data gagal diubah, error $e"), backgroundColor: Colors.red,)
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -116,8 +143,7 @@ class _EditOutletScreenState extends State<EditOutletScreen> {
                   height: 48, // Mengatur tinggi tombol agar pas di jari
                   child: ElevatedButton(
                     onPressed: () {
-                      // Logika ketika data ditambahkan
-                      print("Nama: ${_namaController.text}");
+                     editStore();
                     }, 
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.amberAccent,

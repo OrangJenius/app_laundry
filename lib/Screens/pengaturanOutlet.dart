@@ -1,6 +1,6 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
+import 'package:app_laundry/Services/store_service.dart';
 import 'package:flutter/material.dart';
-
 import 'package:app_laundry/Screens/addOutlet.dart';
 import 'package:app_laundry/Screens/editOutlet.dart';
 import 'package:app_laundry/Widgets/customUpperBarNoMenu.dart';
@@ -17,6 +17,8 @@ class PengaturanOutletScreen extends StatefulWidget {
 }
 
 class _PengaturanOutletScreenState extends State<PengaturanOutletScreen> {
+
+  final storeService = StoreService();
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -54,79 +56,117 @@ class _PengaturanOutletScreenState extends State<PengaturanOutletScreen> {
                 ),
               ),
 
-              // CARD: LIST DATA OUTLET
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
-                child: Card(
-                  color: Colors.white,
-                  elevation: 2,
-                  child: Padding(
-                    padding: const EdgeInsets.all(12.0),
-                    child: Row(
-                      children: [
-                        // Icon Toko
-                        Container(
-                          padding: const EdgeInsets.all(10.0),
-                          decoration: BoxDecoration(
-                            color: Colors.grey[200], // PERBAIKAN: Mengganti grey[1] menjadi grey[200] yang valid
-                            borderRadius: BorderRadius.circular(8.0),
-                          ),
-                          child: const Icon(Icons.store, color: Colors.black87, size: 28),
-                        ),
-                        const SizedBox(width: 12),
-                        
-                        // Detail Info Toko
-                        Expanded( // Menjaga agar text tidak overflow menembus tombol aksi
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start, // PERBAIKAN: Rata kiri agar rapi
-                            children: const [
-                              Text(
-                                "N2Jewel Laundry",
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 15,
-                                  color: Colors.black87,
+              FutureBuilder(
+                future: storeService.fetchStoreWithOwnerId(widget.owner_id),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(
+                      child: CircularProgressIndicator(color: Colors.amber),
+                    );
+                  }
+                  
+                  if (snapshot.hasError) {
+                    return Center(
+                      child: Text(
+                        "Gagal memuat data: ${snapshot.error}",
+                        style: const TextStyle(color: Colors.red),
+                      ),
+                    );
+                  }
+
+                  if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                    return const Center(
+                      child: Text(
+                        "Tidak ada data outlet",
+                        style: TextStyle(color: Colors.white70),
+                      ),
+                    );
+                  }
+
+                  final outlet = snapshot.data!;
+
+                  return ListView.builder(
+                    itemCount: outlet.length,
+                    shrinkWrap: true,
+                    itemBuilder: (context, index){
+                      final store = outlet[index];
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+                        child: Card(
+                          color: Colors.white,
+                          elevation: 2,
+                          child: Padding(
+                            padding: const EdgeInsets.all(12.0),
+                            child: Row(
+                              children: [
+                                // Icon Toko
+                                Container(
+                                  padding: const EdgeInsets.all(10.0),
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey[200], // PERBAIKAN: Mengganti grey[1] menjadi grey[200] yang valid
+                                    borderRadius: BorderRadius.circular(8.0),
+                                  ),
+                                  child: const Icon(Icons.store, color: Colors.black87, size: 28),
                                 ),
-                              ),
-                              SizedBox(height: 2),
-                              Text(
-                                "alamat",
-                                style: TextStyle(color: Colors.grey, fontSize: 12),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              SizedBox(height: 2),
-                              Text(
-                                "0812-3456-7890",
-                                style: TextStyle(color: Colors.grey, fontSize: 12),
-                              ),
-                            ],
+                                const SizedBox(width: 12),
+                                
+                                // Detail Info Toko
+                                Expanded( // Menjaga agar text tidak overflow menembus tombol aksi
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start, // PERBAIKAN: Rata kiri agar rapi
+                                    children:[
+                                      Text(
+                                        store.store_name!,
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 15,
+                                          color: Colors.black87,
+                                        ),
+                                      ),
+                                      SizedBox(height: 2),
+                                      Text(
+                                        store.address!,
+                                        style: TextStyle(color: Colors.grey, fontSize: 12),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      SizedBox(height: 2),
+                                      Text(
+                                        store.phone_number!,
+                                        style: TextStyle(color: Colors.grey, fontSize: 12),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                
+                                // Tombol Aksi (Edit & Delete)
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    IconButton(
+                                      onPressed: () {
+                                        Navigator.push(context, MaterialPageRoute(builder: (context) => EditOutletScreen(id: store.id!, owner_id: widget.owner_id,)));
+                                      }, 
+                                      icon: const Icon(Icons.edit, color: Colors.blue),
+                                    ),
+                                    IconButton(
+                                      onPressed: () {
+                                        // Aksi Delete
+                                      }, 
+                                      icon: const Icon(Icons.delete, color: Colors.red),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                        
-                        // Tombol Aksi (Edit & Delete)
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              onPressed: () {
-                                Navigator.push(context, MaterialPageRoute(builder: (context) => EditOutletScreen()));
-                              }, 
-                              icon: const Icon(Icons.edit, color: Colors.blue),
-                            ),
-                            IconButton(
-                              onPressed: () {
-                                // Aksi Delete
-                              }, 
-                              icon: const Icon(Icons.delete, color: Colors.red),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              )
+                      );
+                    }
+                  );
+                },
+              ),
+              // CARD: LIST DATA OUTLET
             ],
           ),
         ),

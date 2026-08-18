@@ -7,8 +7,9 @@ class EditDurasiScreen extends StatefulWidget {
   final String? durasiId;
   final String? nama;
   final String? jam;
+  final String store_id;
 
-  const EditDurasiScreen({super.key, required this.durasiId, required this.nama, required this.jam});
+  const EditDurasiScreen({super.key, required this.durasiId, required this.nama, required this.jam, required this.store_id});
   @override
   _EditDurasiScreenState createState() => _EditDurasiScreenState();
 }
@@ -31,7 +32,7 @@ class _EditDurasiScreenState extends State<EditDurasiScreen> {
     setState(() {
       _isLoading = true;
     });
-    final newDurasi = DurasiModel(duration_name: _namaController.text, hours: _lamaController.text);
+    final newDurasi = DurasiModel(duration_name: _namaController.text, hours: _lamaController.text, store_id: widget.store_id);
     try{
     await durasiService.updateDurasi(newDurasi, widget.durasiId);
     if (mounted) {

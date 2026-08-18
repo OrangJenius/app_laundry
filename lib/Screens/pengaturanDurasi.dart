@@ -202,7 +202,7 @@ class _PengaturanDurasiScreenState extends State<PengaturanDurasiScreen> {
                                   children: [
                                     IconButton(
                                       onPressed: () {
-                                        Navigator.push(context, MaterialPageRoute(builder: (context) => EditDurasiScreen(durasiId: duration.id, nama: duration.duration_name, jam: duration.hours,)));
+                                        Navigator.push(context, MaterialPageRoute(builder: (context) => EditDurasiScreen(durasiId: duration.id, nama: duration.duration_name, jam: duration.hours, store_id: widget.store_id!)));
                                       }, 
                                       icon: const Icon(Icons.edit, color: Colors.blue),
                                     ),
