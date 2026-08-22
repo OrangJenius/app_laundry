@@ -29,7 +29,7 @@ class _PengaturanLayananScreenState extends State<PengaturanLayananScreen> {
 
   void _deleteService(String id) async {
     try {
-      await durasiService.deleteDurasi(id);
+      await serviceService.deleteService(id);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(

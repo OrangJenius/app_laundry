@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:app_laundry/Models/cashFlowModel.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -7,7 +8,8 @@ import 'package:app_laundry/Screens/subCash.dart';
 import 'package:app_laundry/Services/orderStatus_service.dart';
 import 'package:app_laundry/Services/order_service.dart';
 import 'package:app_laundry/Services/transaksi_service.dart';
-import 'package:app_laundry/Widgets/customUpperBar.dart'; 
+import 'package:app_laundry/Services/cashFlow_service.dart'; // adjust path if different
+import 'package:app_laundry/Widgets/customUpperBar.dart';
 import 'package:app_laundry/Widgets/customDialog.dart';
 
 class LaporanScreen extends StatefulWidget {
@@ -15,8 +17,8 @@ class LaporanScreen extends StatefulWidget {
   final ValueChanged<String?> onStoreChanged;
 
   const LaporanScreen({
-    super.key, 
-    this.selectedStoreId, 
+    super.key,
+    required this.selectedStoreId,
     required this.onStoreChanged,
   });
 
@@ -28,12 +30,13 @@ class _LaporanScreenState extends State<LaporanScreen> {
   final _orderService = OrderService();
   final _transaksiService = TransaksiService();
   final _orderStatusService = OrderStatusService();
+  final _cashFlowService = CashFlowService();
 
   late Future<Map<String, dynamic>> _reportDataFuture;
 
   final currencyFormatter = NumberFormat.currency(
-    locale: 'id_ID', 
-    symbol: 'Rp ', 
+    locale: 'id_ID',
+    symbol: 'Rp ',
     decimalDigits: 0,
   );
 
@@ -72,16 +75,16 @@ class _LaporanScreenState extends State<LaporanScreen> {
 
     final now = DateTime.now();
 
-    // Fetch transactions & orders in parallel
+    // Fetch cash flow, transactions & orders in parallel
     final results = await Future.wait([
-      _transaksiService.fetchStoreTransaksi(storeId),
+      _cashFlowService.getCashFlows(storeId: storeId),
       _transaksiService.fetchTransaksiNow(storeId, now),
       _orderService.fetchOrderNow(storeId, now),
     ]);
 
-    final List<dynamic> allStoreTransaksi = results[0];
-    final List<dynamic> transaksiNow = results[1];
-    final List<dynamic> orderNow = results[2];
+    final List<CashFlowModel> cashFlows = results[0] as List<CashFlowModel>;
+    final List<dynamic> transaksiNow = results[1] as List<dynamic>;
+    final List<dynamic> orderNow = results[2] as List<dynamic>;
 
     // Get order IDs to query their status
     final List<String> orderNowIds = orderNow
@@ -91,25 +94,25 @@ class _LaporanScreenState extends State<LaporanScreen> {
 
     List<dynamic> orderStatuses = [];
     if (orderNowIds.isNotEmpty) {
-      orderStatuses = await _orderStatusService.fetchOrderStatusByOrderIds(orderNowIds);
+      orderStatuses =
+          await _orderStatusService.fetchOrderStatusByOrderIds(orderNowIds);
     }
 
-    // 1. Saldo Tunai & Non-Tunai (Calculated from all completed/paid store transactions)
+    // 1. Saldo Tunai & Non-Tunai (calculated from cash_flow: MASUK adds, KELUAR subtracts)
     double saldoTunai = 0.0;
     double saldoNonTunai = 0.0;
-    
-    for (var tx in allStoreTransaksi) {
-      final statusPembayaran = (tx['status_pembayaran'] ?? '').toString().toLowerCase();
-      // Skip unpaid records when calculating current cash balance
-      if (statusPembayaran == 'belum bayar') continue;
 
-      final double amount = double.tryParse(tx['jumlah_transaksi']?.toString() ?? '0') ?? 0.0;
-      final jenisPembayaran = (tx['jenis_pembayaran'] ?? '').toString().toLowerCase();
+    for (var cf in cashFlows) {
+      final double nominal = double.tryParse(cf.jumlah) ?? 0.0;
+      final caraTransaksi = cf.cara_transaksi.toLowerCase();
+      final tipe = cf.tipe.toUpperCase();
+      final double signedAmount =
+          tipe == 'MASUK' ? nominal : (tipe == 'KELUAR' ? -nominal : 0.0);
 
-      if (jenisPembayaran.contains('tunai') || jenisPembayaran.contains('cash')) {
-        saldoTunai += amount;
-      } else if (jenisPembayaran.isNotEmpty) {
-        saldoNonTunai += amount;
+      if (caraTransaksi.contains('tunai') || caraTransaksi.contains('cash')) {
+        saldoTunai += signedAmount;
+      } else {
+        saldoNonTunai += signedAmount;
       }
     }
 
@@ -177,8 +180,8 @@ class _LaporanScreenState extends State<LaporanScreen> {
                             onPressed: () {
                               Navigator.push(
                                 context,
-                                MaterialPageRoute(builder: (context) => const AddCashScreen()),
-                              );
+                                MaterialPageRoute(builder: (context) =>  AddCashScreen(storeId: widget.selectedStoreId!,)),
+                              ).then((_) => _loadReportData());
                             },
                             style: ElevatedButton.styleFrom(backgroundColor: Colors.amber),
                             child: const Text(
@@ -193,8 +196,8 @@ class _LaporanScreenState extends State<LaporanScreen> {
                             onPressed: () {
                               Navigator.push(
                                 context,
-                                MaterialPageRoute(builder: (context) => const SubCashScreen()),
-                              );
+                                MaterialPageRoute(builder: (context) => SubCashScreen(storeId: widget.selectedStoreId!,)),
+                              ).then((_) => _loadReportData());
                             },
                             style: ElevatedButton.styleFrom(backgroundColor: Colors.amberAccent),
                             child: const Text(
