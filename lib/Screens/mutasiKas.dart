@@ -45,7 +45,7 @@ class _MutasiKasScreenState extends State<MutasiKasScreen> {
     final List<CashFlowModel> periodFlows = await cashFlowService.getCashFlows(
       storeId: widget.store_id,
       startDate: widget.date.start,
-      endDate: widget.date.end,
+      endDate: widget.date.end.add(Duration(days: 1)),
     );
 
     return {

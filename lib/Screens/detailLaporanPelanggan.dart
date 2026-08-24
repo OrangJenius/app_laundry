@@ -67,7 +67,7 @@ class _DetailLaporanPelangganScreenState extends State<DetailLaporanPelangganScr
       orderService.fetchOrdersByStoreAndDate(
         widget.store_id,
         widget.date.start,
-        widget.date.end,
+        widget.date.end.add(Duration(days: 1)),
       ),
     ]);
 

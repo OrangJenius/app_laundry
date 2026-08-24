@@ -81,7 +81,7 @@ class _DetailLaporanLayananScreenState extends State<DetailLaporanLayananScreen>
       orderDetailService.fetchOrderDetailByStoreAndDate(
         widget.store_id,
         widget.date.start,
-        widget.date.end,
+        widget.date.end.add(Duration(days: 1)),
       ),
     ]);
 

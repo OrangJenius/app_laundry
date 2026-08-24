@@ -4,6 +4,7 @@ class Customer {
   final String? alamat;
   final String? phoneNumber;
   final String? store_id;
+  String? created_at;
 
   Customer({
     this.id,
@@ -11,6 +12,7 @@ class Customer {
     required this.nama,
     required this.phoneNumber,
     this.store_id,
+    this.created_at,
   });
 
   // Ganti nama dari fromJson ke fromMap agar seragam dengan fungsi Supabase
@@ -21,6 +23,7 @@ class Customer {
       phoneNumber: map['nomor_telepon'] as String?,
       alamat: map['alamat'] as String?, 
       store_id: map['store_id']?.toString(),
+      created_at: map['created_at']?.toString(),
     );
   }
 
@@ -31,6 +34,7 @@ class Customer {
       'nomor_telepon': phoneNumber,
       'alamat': alamat,
       'store_id' : store_id,
+      'created_at' : created_at,
     };
     
     if (id != null) {
