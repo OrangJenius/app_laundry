@@ -4,7 +4,7 @@ import 'dart:convert';
 class TransaksiModel {
   final String? id;
   final String order_id;
-  final String? created_at;
+  String? created_at;
   final String status_pembayaran;
   final String? jenis_pembayaran;
   final String profile_id;

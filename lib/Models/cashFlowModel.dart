@@ -3,7 +3,7 @@ import 'dart:convert';
 
 class CashFlowModel {
   final String? id;
-  final String? created_at;
+  String? created_at;
   final String jumlah;
   final String keterangan;
   final String tipe;
@@ -63,7 +63,9 @@ class CashFlowModel {
   factory CashFlowModel.fromMap(Map<String, dynamic> map) {
     return CashFlowModel(
       id: map['id'] != null ? map['id']?.toString() as String : null,
-      created_at: map['created_at'] != null ? map['created_at']?.toString() as String : null,
+      created_at: map['created_at'] != null 
+      ? (map['created_at'] is String ? map['created_at'] : map['created_at'].toString())
+      : DateTime.now().toIso8601String(),
       jumlah: map['jumlah']?.toString() as String,
       keterangan: map['keterangan'] as String,
       tipe: map['tipe'] as String,

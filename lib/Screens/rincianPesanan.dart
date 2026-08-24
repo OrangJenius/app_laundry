@@ -49,6 +49,7 @@ class _RincianPesananScreenState extends State<RincianPesananScreen> {
   late Future<dynamic> _orderStatusFuture;
   late Future<dynamic> _transaksiFuture;
   late Future<NotaModel?> _notaFuture;
+  late String ownerId;
 
   @override
   void initState() {
@@ -313,6 +314,7 @@ class _RincianPesananScreenState extends State<RincianPesananScreen> {
       final uid = supabase.auth.currentUser?.id;
       final profile = await ProfileService().fetchProfileWithId(uid!);
       final oID = profile?.owner_id;
+      ownerId = oID!;
       final newOrder = OrderStatusModel(
         order_id: widget.order_id,
         status_order: "Batal",
@@ -1019,8 +1021,7 @@ class _RincianPesananScreenState extends State<RincianPesananScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  UpperBar2(title: "RINCIAN PESANAN"),
-
+                  UpperBar3(title: "RINCIAN PESANAN", owner_id: ownerId,),
                   // ================= TOKO & NOTA =================
                   Padding(
                     padding: const EdgeInsets.symmetric(
@@ -1289,7 +1290,8 @@ class _RincianPesananScreenState extends State<RincianPesananScreen> {
                                 currentStatus.isEmpty ? '-' : currentStatus),
                             const Divider(),
                             _buildInfoRow(
-                                "Tanggal Masuk", order['created_at'] ?? '-'),
+                                "Tanggal Masuk", _calculateEstimateFinish(
+                                  order['created_at'] ?? '', 0)),
                             const Divider(),
                             _buildInfoRow(
                               "Estimasi Selesai",

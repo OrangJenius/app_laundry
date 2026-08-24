@@ -1,16 +1,30 @@
 import 'package:app_laundry/Models/cashFlowModel.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:intl/intl.dart';
 
 class CashFlowService {
   final _supabase = Supabase.instance.client;
 
+  /// Helper: Convert UTC datetime to local timezone
+  DateTime _convertToLocal(dynamic dateTimeValue) {
+    if (dateTimeValue is String) {
+      return DateTime.parse(dateTimeValue).toLocal();
+    } else if (dateTimeValue is DateTime) {
+      return dateTimeValue.toLocal();
+    }
+    return DateTime.now();
+  }
+
+  /// Helper: Format datetime for display
+  String formatDateTime(dynamic dateTimeValue) {
+    final localDateTime = _convertToLocal(dateTimeValue);
+    return DateFormat('dd MMM yyyy, HH:mm').format(localDateTime);
+  }
 
   /// 1. Tambah Record Mutasi Kas Baru
   Future<CashFlowModel> createCashFlow(CashFlowModel cashFlow) async {
-    // Siapkan map untuk dikirim ke Supabase
     final dataMap = cashFlow.toMap();
 
-    // Hapus field null agar Supabase menggunakan nilai default (misal auto-gen ID & created_at)
     if (cashFlow.id == null) dataMap.remove('id');
     if (cashFlow.created_at == null) dataMap.remove('created_at');
     if (cashFlow.order_id == null) dataMap.remove('order_id');
@@ -27,7 +41,7 @@ class CashFlowService {
   /// 2. Helper Khusus: Tambah Modal
   Future<CashFlowModel> addModal({
     required String jumlah,
-    required String caraTransaksi, // 'CASH', 'TRANSFER', dll.
+    required String caraTransaksi,
     required String profileId,
     required String store_id,
     required String keterangan,
@@ -83,8 +97,8 @@ class CashFlowService {
     return await createCashFlow(model);
   }
 
-  /// 5. Fetch Semua Mutasi Kas (Dengan Filter Opsional)
   /// 5. Fetch Semua Mutasi Kas (Filter Store ID & Date Range)
+  /// NOW RETURNS DATETIMES IN LOCAL TIMEZONE
   Future<List<CashFlowModel>> getCashFlows({
     required String storeId,
     DateTime? startDate,
@@ -95,10 +109,10 @@ class CashFlowService {
     var query = _supabase.from('cash_flow').select().eq('store_id', storeId);
 
     if (startDate != null) {
-      query = query.gte('created_at', startDate.toIso8601String());
+      query = query.gte('created_at', startDate.toUtc().toIso8601String());
     }
     if (endDate != null) {
-      query = query.lte('created_at', endDate.toIso8601String());
+      query = query.lte('created_at', endDate.toUtc().toIso8601String());
     }
     if (tipe != null) {
       query = query.eq('tipe', tipe);
@@ -109,9 +123,14 @@ class CashFlowService {
 
     final response = await query.order('created_at', ascending: false);
 
-    return (response as List)
-        .map((e) => CashFlowModel.fromMap(e as Map<String, dynamic>))
-        .toList();
+    return (response as List).map((e) {
+      var model = CashFlowModel.fromMap(e as Map<String, dynamic>);
+      // Convert created_at to local timezone
+      if (model.created_at != null) {
+        model.created_at = _convertToLocal(model.created_at).toString();
+      }
+      return model;
+    }).toList();
   }
 
   /// 6. Hitung Laporan Saldo Kas & Rincian per Cara Transaksi
@@ -149,7 +168,7 @@ class CashFlowService {
       'total_masuk': totalMasuk,
       'total_keluar': totalKeluar,
       'saldo_akhir': totalMasuk - totalKeluar,
-      'saldo_per_metode': saldoPerMetode, // Contoh: {'CASH': 150000.0, 'QRIS': 200000.0}
+      'saldo_per_metode': saldoPerMetode,
     };
   }
 }

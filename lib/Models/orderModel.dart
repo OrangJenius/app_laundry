@@ -18,7 +18,7 @@ class OrderModel {
   final String? antar_jemput_id;
   final String profile_id;
   final String? discount_id;
-  final String? created_at;
+  String? created_at;
 
   final Customer? customer;
   final AntarJemputModel? antar_jemput;

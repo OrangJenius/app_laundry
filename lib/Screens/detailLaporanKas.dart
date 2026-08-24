@@ -179,6 +179,8 @@ class _DetailLaporanKasScreenState extends State<DetailLaporanKasScreen> {
     // 2. Fetch Saldo Awal (Mutasi Sebelum Tanggal Start)
     final List<CashFlowModel> pastFlows = await cashFlowService.getCashFlows(
       storeId: widget.store_id,
+      // startDate: widget.date.start,
+      // endDate: widget.date.end.add(const Duration(days: 1)).subtract(const Duration(seconds: 1)), // 23:59:59,
       endDate: widget.date.start.subtract(const Duration(seconds: 1)),
     );
 
@@ -201,7 +203,7 @@ class _DetailLaporanKasScreenState extends State<DetailLaporanKasScreen> {
     final List<CashFlowModel> periodFlows = await cashFlowService.getCashFlows(
       storeId: widget.store_id,
       startDate: widget.date.start,
-      endDate: widget.date.end,
+      endDate: widget.date.end.add(Duration(days: 1)),
     );
 
     double pendapatanTunai = 0;

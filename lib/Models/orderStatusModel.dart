@@ -2,11 +2,11 @@
 import 'dart:convert';
 
 class OrderStatusModel {
- final String? id;
- final String order_id;
- final String? created_at;
- final String status_order;
- final String profile_id;
+  final String? id;
+  final String order_id;
+  String? created_at;
+  final String status_order;
+  final String profile_id;
 
   OrderStatusModel({
     this.id,
