@@ -63,6 +63,10 @@ class _AddPesanan2ScreenState extends State<AddPesanan2Screen> {
   dynamic _selectedDiskon;
   final TextEditingController _catatanController = TextEditingController();
 
+  // Search bar state
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = "";
+
   bool _isLoading = false;
 
   final supabase = Supabase.instance.client;
@@ -80,6 +84,7 @@ class _AddPesanan2ScreenState extends State<AddPesanan2Screen> {
   @override
   void dispose() {
     _catatanController.dispose();
+    _searchController.dispose();
     for (var controller in _controllers.values) {
       controller.dispose();
     }
@@ -110,7 +115,20 @@ class _AddPesanan2ScreenState extends State<AddPesanan2Screen> {
     return _itemCounts.values.fold(0, (sum, count) => sum + count);
   }
 
-  /// Base total from selected services only (qty * price)
+  /// Filters the full services list by the current search query,
+  /// matching against the service name (case-insensitive).
+  List<dynamic> _filterServices(List<dynamic> services) {
+    if (_searchQuery.trim().isEmpty) return services;
+    final query = _searchQuery.trim().toLowerCase();
+    return services.where((service) {
+      final name = (service.service_name ?? "").toString().toLowerCase();
+      return name.contains(query);
+    }).toList();
+  }
+
+  /// Base total from selected services only (qty * price).
+  /// NOTE: always computed from the FULL (unfiltered) services list so the
+  /// running total doesn't change just because the user is searching.
   int _calculateTotalHarga(List<dynamic> services) {
     int total = 0;
     for (var service in services) {
@@ -564,10 +582,13 @@ class _AddPesanan2ScreenState extends State<AddPesanan2Screen> {
             }
 
             final services = snapshot.data ?? [];
-            // Base total from services only. Antar-jemput cost and diskon
-            // are applied live inside the "Atur Pesanan" modal via
-            // _calculateFinalTotal, since those selections happen there.
+            // Base total from ALL services (unaffected by search filter).
+            // Antar-jemput cost and diskon are applied live inside the
+            // "Atur Pesanan" modal via _calculateFinalTotal.
             int totalHarga = _calculateTotalHarga(services);
+
+            // Only the displayed list is filtered by the search query.
+            final filteredServices = _filterServices(services);
 
             return Column(
               children: [
@@ -577,12 +598,31 @@ class _AddPesanan2ScreenState extends State<AddPesanan2Screen> {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                   child: Row(
-                    children: const [
+                    children: [
                       Expanded(
                         child: SearchBar(
+                          controller: _searchController,
                           hintText: "Cari nama layanan",
-                          leading: Icon(Icons.search),
-                          elevation: WidgetStatePropertyAll(1),
+                          leading: const Icon(Icons.search),
+                          elevation: const WidgetStatePropertyAll(1),
+                          trailing: _searchQuery.isNotEmpty
+                              ? [
+                                  IconButton(
+                                    icon: const Icon(Icons.clear),
+                                    onPressed: () {
+                                      _searchController.clear();
+                                      setState(() {
+                                        _searchQuery = "";
+                                      });
+                                    },
+                                  ),
+                                ]
+                              : null,
+                          onChanged: (value) {
+                            setState(() {
+                              _searchQuery = value;
+                            });
+                          },
                         ),
                       ),
                     ],
@@ -595,117 +635,121 @@ class _AddPesanan2ScreenState extends State<AddPesanan2Screen> {
                       ? const Center(
                           child: Text("Belum ada layanan tersedia", style: TextStyle(color: Colors.white70)),
                         )
-                      : ListView.builder(
-                          itemCount: services.length,
-                          itemBuilder: (context, index) {
-                            final service = services[index];
-                            final String serviceId = service.id.toString();
-                            final int currentCount = _itemCounts[serviceId] ?? 0;
-                            final controller = _getController(serviceId, currentCount);
+                      : filteredServices.isEmpty
+                          ? const Center(
+                              child: Text("Layanan tidak ditemukan", style: TextStyle(color: Colors.white70)),
+                            )
+                          : ListView.builder(
+                              itemCount: filteredServices.length,
+                              itemBuilder: (context, index) {
+                                final service = filteredServices[index];
+                                final String serviceId = service.id.toString();
+                                final int currentCount = _itemCounts[serviceId] ?? 0;
+                                final controller = _getController(serviceId, currentCount);
 
-                            return Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
-                              child: Card(
-                                color: Colors.white,
-                                elevation: 2,
-                                child: Padding(
-                                  padding: const EdgeInsets.all(12.0),
-                                  child: Row(
-                                    children: [
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              service.duration.duration_name ?? "Layanan",
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.normal,
-                                                fontSize: 13,
-                                                color: Colors.grey,
-                                                fontStyle: FontStyle.italic,
-                                              ),
-                                            ),
-                                            Text(
-                                              service.service_name ?? "-",
-                                              style: const TextStyle(
-                                                fontSize: 15,
-                                                fontWeight: FontWeight.bold,
-                                                color: Colors.black,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 2),
-                                            Text(
-                                              "Rp. ${service.price}",
-                                              style: const TextStyle(
-                                                color: Colors.black87,
-                                                fontSize: 13,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-
-                                      // Item Counter Controls
-                                      currentCount == 0
-                                          ? IconButton(
-                                              onPressed: () => _updateCount(serviceId, 1),
-                                              icon: const Icon(Icons.add_circle, color: Colors.amber, size: 32),
-                                            )
-                                          : Row(
-                                              mainAxisSize: MainAxisSize.min,
+                                return Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+                                  child: Card(
+                                    color: Colors.white,
+                                    elevation: 2,
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(12.0),
+                                      child: Row(
+                                        children: [
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
                                               children: [
-                                                IconButton(
-                                                  onPressed: () => _updateCount(serviceId, currentCount - 1),
-                                                  icon: const Icon(Icons.remove_circle_outline, color: Colors.redAccent, size: 26),
-                                                  constraints: const BoxConstraints(),
-                                                  padding: EdgeInsets.zero,
-                                                ),
-                                                Container(
-                                                  width: 50,
-                                                  height: 35,
-                                                  margin: const EdgeInsets.symmetric(horizontal: 8.0),
-                                                  child: TextField(
-                                                    controller: controller,
-                                                    keyboardType: TextInputType.number,
-                                                    textAlign: TextAlign.center,
-                                                    style: const TextStyle(
-                                                      fontSize: 15,
-                                                      fontWeight: FontWeight.bold,
-                                                      color: Colors.black,
-                                                    ),
-                                                    decoration: InputDecoration(
-                                                      contentPadding: EdgeInsets.zero,
-                                                      border: OutlineInputBorder(
-                                                        borderRadius: BorderRadius.circular(6),
-                                                        borderSide: const BorderSide(color: Colors.grey),
-                                                      ),
-                                                      focusedBorder: OutlineInputBorder(
-                                                        borderRadius: BorderRadius.circular(6),
-                                                        borderSide: const BorderSide(color: Colors.amber),
-                                                      ),
-                                                    ),
-                                                    onChanged: (value) {
-                                                      int? parsed = int.tryParse(value);
-                                                      _updateCount(serviceId, parsed ?? 0);
-                                                    },
+                                                Text(
+                                                  service.duration.duration_name ?? "Layanan",
+                                                  style: const TextStyle(
+                                                    fontWeight: FontWeight.normal,
+                                                    fontSize: 13,
+                                                    color: Colors.grey,
+                                                    fontStyle: FontStyle.italic,
                                                   ),
                                                 ),
-                                                IconButton(
-                                                  onPressed: () => _updateCount(serviceId, currentCount + 1),
-                                                  icon: const Icon(Icons.add_circle_outline, color: Colors.green, size: 26),
-                                                  constraints: const BoxConstraints(),
-                                                  padding: EdgeInsets.zero,
+                                                Text(
+                                                  service.service_name ?? "-",
+                                                  style: const TextStyle(
+                                                    fontSize: 15,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Colors.black,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 2),
+                                                Text(
+                                                  "Rp. ${service.price}",
+                                                  style: const TextStyle(
+                                                    color: Colors.black87,
+                                                    fontSize: 13,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
                                                 ),
                                               ],
                                             ),
-                                    ],
+                                          ),
+
+                                          // Item Counter Controls
+                                          currentCount == 0
+                                              ? IconButton(
+                                                  onPressed: () => _updateCount(serviceId, 1),
+                                                  icon: const Icon(Icons.add_circle, color: Colors.amber, size: 32),
+                                                )
+                                              : Row(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    IconButton(
+                                                      onPressed: () => _updateCount(serviceId, currentCount - 1),
+                                                      icon: const Icon(Icons.remove_circle_outline, color: Colors.redAccent, size: 26),
+                                                      constraints: const BoxConstraints(),
+                                                      padding: EdgeInsets.zero,
+                                                    ),
+                                                    Container(
+                                                      width: 50,
+                                                      height: 35,
+                                                      margin: const EdgeInsets.symmetric(horizontal: 8.0),
+                                                      child: TextField(
+                                                        controller: controller,
+                                                        keyboardType: TextInputType.number,
+                                                        textAlign: TextAlign.center,
+                                                        style: const TextStyle(
+                                                          fontSize: 15,
+                                                          fontWeight: FontWeight.bold,
+                                                          color: Colors.black,
+                                                        ),
+                                                        decoration: InputDecoration(
+                                                          contentPadding: EdgeInsets.zero,
+                                                          border: OutlineInputBorder(
+                                                            borderRadius: BorderRadius.circular(6),
+                                                            borderSide: const BorderSide(color: Colors.grey),
+                                                          ),
+                                                          focusedBorder: OutlineInputBorder(
+                                                            borderRadius: BorderRadius.circular(6),
+                                                            borderSide: const BorderSide(color: Colors.amber),
+                                                          ),
+                                                        ),
+                                                        onChanged: (value) {
+                                                          int? parsed = int.tryParse(value);
+                                                          _updateCount(serviceId, parsed ?? 0);
+                                                        },
+                                                      ),
+                                                    ),
+                                                    IconButton(
+                                                      onPressed: () => _updateCount(serviceId, currentCount + 1),
+                                                      icon: const Icon(Icons.add_circle_outline, color: Colors.green, size: 26),
+                                                      constraints: const BoxConstraints(),
+                                                      padding: EdgeInsets.zero,
+                                                    ),
+                                                  ],
+                                                ),
+                                        ],
+                                      ),
+                                    ),
                                   ),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
+                                );
+                              },
+                            ),
                 ),
 
                 // --- BOTTOM NAVIGATION BAR ---
