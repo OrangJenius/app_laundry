@@ -48,6 +48,10 @@ class _AddCashScreenState extends State<AddCashScreen> {
 
       double tunai = 0.0;
       double nonTunai = 0.0;
+      bool isCashPayment(String v) {
+        final s = v.trim().toLowerCase();
+        return s == 'tunai' || s == 'cash';
+      }
 
       for (var cf in cashFlows) {
         final double nominal = double.tryParse(cf.jumlah) ?? 0.0;
@@ -55,7 +59,8 @@ class _AddCashScreenState extends State<AddCashScreen> {
         final tipe = cf.tipe.toUpperCase();
         final double signed = tipe == 'MASUK' ? nominal : (tipe == 'KELUAR' ? -nominal : 0.0);
 
-        if (cara.contains('tunai') || cara.contains('cash')) {
+        // inside the loop:
+        if (isCashPayment(cara)) {
           tunai += signed;
         } else {
           nonTunai += signed;

@@ -74,6 +74,7 @@ class _DetailLaporanLayananScreenState extends State<DetailLaporanLayananScreen>
 
   /// Memuat nama outlet, master service, & order detail secara paralel
   Future<ReportDataHolder> _fetchAndProcessReport() async {
+    try{
     // Jalankan 3 request sekaligus secara paralel (jauh lebih cepat)
     final results = await Future.wait([
       storeService.fetchStoreName(widget.store_id),
@@ -121,6 +122,10 @@ class _DetailLaporanLayananScreenState extends State<DetailLaporanLayananScreen>
       storeName: storeName,
       items: reportMap.values.toList(),
     );
+    }catch (e, st) {
+      debugPrint('LAPORAN ERROR: $e\n$st');
+      rethrow;
+    }
   }
 
   /// Mengurutkan list data laporan sesuai opsi dropdown
@@ -290,7 +295,7 @@ class _DetailLaporanLayananScreenState extends State<DetailLaporanLayananScreen>
             if (snapshot.hasError) {
               return Center(
                 child: Text(
-                  'Terjadi kesalahan: ${snapshot.error}',
+                  'Terjadi kesalahan: ${snapshot.error}\n\n${snapshot.stackTrace}',
                   style: const TextStyle(color: Colors.white),
                 ),
               );

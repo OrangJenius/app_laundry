@@ -49,12 +49,25 @@ class _RincianPesananScreenState extends State<RincianPesananScreen> {
   late Future<dynamic> _orderStatusFuture;
   late Future<dynamic> _transaksiFuture;
   late Future<NotaModel?> _notaFuture;
-  late String ownerId;
+  String ownerId = '';
 
   @override
   void initState() {
     super.initState();
     _loadData();
+    _loadOwnerId();
+  }
+
+  Future<void> _loadOwnerId() async {
+    final uid = supabase.auth.currentUser?.id;
+    if (uid == null) return;
+    try {
+      final profile = await ProfileService().fetchProfileWithId(uid);
+      if (!mounted) return;
+      setState(() => ownerId = profile?.owner_id ?? '');
+    } catch (e) {
+      debugPrint('Gagal memuat owner_id: $e');
+    }
   }
 
   void _loadData() {

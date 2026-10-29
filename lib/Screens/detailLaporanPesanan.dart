@@ -114,11 +114,16 @@ class _DetailLaporanPesananScreenState
     double totalMeteran = 0;
 
     for (var order in orders) {
-      print ("ORDERRRRR: $order");
-      print ("ORDERRRRRsssssss: $orders");
       double total = double.tryParse(order.total_harga ?? '0') ?? 0;
-      double delivery = double.tryParse(order.antar_jemput!.harga ?? '0') ?? 0;
-      double discount = double.tryParse(order.discount_id ?? '0') ??0;
+      double delivery = double.tryParse(order.antar_jemput?.harga?.toString() ?? '0') ?? 0;
+      double discount = 0;
+      final d = order.diskon;
+      if (d != null) {
+        final jumlah = double.tryParse(d.jumlah_diskon.toString()) ?? 0;
+        discount = d.tipe_diskon.toString().toLowerCase() == 'persentase'
+            ? total * jumlah / 100
+            : jumlah;
+      }
 
       totalDelivery += delivery;
       totalDiscount += discount;
@@ -576,12 +581,12 @@ class _DetailLaporanPesananScreenState
                                           ),
                                           const SizedBox(height: 4),
                                           Text(
-                                            "${order.customer!.nama ?? 'Pelanggan'} : ${order.receipt ?? '-'}",
+                                            "${order.customer?.nama ?? 'Pelanggan'} : ${order.receipt ?? '-'}",
                                             style: const TextStyle(
                                                 color: Colors.black),
                                           ),
                                           Text(
-                                            order.profiles!.cashier_name ?? "Manager",
+                                            order.profiles?.cashier_name ?? "Manager",
                                             style: const TextStyle(
                                                 color: Colors.grey),
                                           ),

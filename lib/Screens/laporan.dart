@@ -101,6 +101,10 @@ class _LaporanScreenState extends State<LaporanScreen> {
     // 1. Saldo Tunai & Non-Tunai (calculated from cash_flow: MASUK adds, KELUAR subtracts)
     double saldoTunai = 0.0;
     double saldoNonTunai = 0.0;
+    bool isCashPayment(String caraTransaksi) {
+        final v = caraTransaksi.trim().toLowerCase();
+        return v == 'tunai' || v == 'cash';
+    }
 
     for (var cf in cashFlows) {
       final double nominal = double.tryParse(cf.jumlah) ?? 0.0;
@@ -109,7 +113,7 @@ class _LaporanScreenState extends State<LaporanScreen> {
       final double signedAmount =
           tipe == 'MASUK' ? nominal : (tipe == 'KELUAR' ? -nominal : 0.0);
 
-      if (caraTransaksi.contains('tunai') || caraTransaksi.contains('cash')) {
+      if (isCashPayment(caraTransaksi)) {
         saldoTunai += signedAmount;
       } else {
         saldoNonTunai += signedAmount;

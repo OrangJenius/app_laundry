@@ -14,6 +14,8 @@ import 'package:app_laundry/Services/transaksi_service.dart';
 import 'package:flutter/material.dart';
 import 'package:app_laundry/Widgets/customUpperBarNoMenu.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:intl/intl.dart';
+import 'package:app_laundry/Services/store_service.dart';
 
 class AddPesanan2Screen extends StatefulWidget {
   final String nama;
@@ -46,6 +48,7 @@ class _AddPesanan2ScreenState extends State<AddPesanan2Screen> {
   final orderDetailService = OrderDetailService();
   final orderStatusService = OrderStatusService();
   final transaksiService = TransaksiService();
+  final storeService = StoreService();
 
   // Futures cached in State
   late Future<List<dynamic>> _serviceFuture;
@@ -169,6 +172,25 @@ class _AddPesanan2ScreenState extends State<AddPesanan2Screen> {
     return "Rp. ${value.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')}";
   }
 
+  Future<String> _generateReceipt() async {
+    final now = DateTime.now();
+
+    final results = await Future.wait([
+      storeService.fetchStoreName(widget.store_id),
+      orderService.fetchOrderNow(widget.store_id, now),
+    ]);
+
+    final String rawName = (results[0] as String?) ?? 'Toko';
+    final List<dynamic> ordersToday = results[1] as List<dynamic>;
+
+    // Remove spaces and characters that could break the receipt string
+    final storeName = rawName.trim().replaceAll(RegExp(r'[^A-Za-z0-9]'), '');
+    final date = DateFormat('yyyyMMdd').format(now);
+    final queue = (ordersToday.length + 1).toString().padLeft(3, '0');
+
+    return 'NOTA-$storeName.$date.$queue';
+  }
+
   /// Process creating the order and its associated detail, status, and transaction models
   Future<void> addPesanan(int totalHarga, List<dynamic> services) async {
     final String? uID = supabase.auth.currentUser?.id;
@@ -190,6 +212,7 @@ class _AddPesanan2ScreenState extends State<AddPesanan2Screen> {
     setState(() => _isLoading = true);
 
     try {
+      final String receipt = await _generateReceipt();
       // 1. Create Main Order
       final newOrder = OrderModel(
         store_id: widget.store_id,
@@ -200,6 +223,7 @@ class _AddPesanan2ScreenState extends State<AddPesanan2Screen> {
         antar_jemput_id: _selectedAntarJemput?.id != null ? _selectedAntarJemput.id.toString() : null,
         profile_id: uID,
         discount_id: _selectedDiskon?.id != null ? _selectedDiskon.id.toString() : null,
+        receipt: receipt
       );
       
       final createdOrder = await orderService.addOrder(newOrder);

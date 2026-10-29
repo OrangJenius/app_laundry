@@ -189,13 +189,17 @@ class _DetailLaporanKasScreenState extends State<DetailLaporanKasScreen> {
 
     for (var item in pastFlows) {
       final nominal = double.tryParse(item.jumlah) ?? 0.0;
-      final isTunai = item.cara_transaksi.toUpperCase() == 'CASH' ||
-          item.cara_transaksi.toUpperCase() == 'TUNAI';
+      // final isTunai = item.cara_transaksi.toUpperCase() == 'CASH' ||
+      //     item.cara_transaksi.toUpperCase() == 'TUNAI';
+      bool isCashPayment(String caraTransaksi) {
+        final v = caraTransaksi.trim().toLowerCase();
+        return v == 'tunai' || v == 'cash';
+      }
 
       if (item.tipe.toUpperCase() == 'MASUK') {
-        if (isTunai) saldoAwalTunai += nominal; else saldoAwalNonTunai += nominal;
+        if (isCashPayment(item.cara_transaksi)) saldoAwalTunai += nominal; else saldoAwalNonTunai += nominal;
       } else {
-        if (isTunai) saldoAwalTunai -= nominal; else saldoAwalNonTunai -= nominal;
+        if (isCashPayment(item.cara_transaksi)) saldoAwalTunai -= nominal; else saldoAwalNonTunai -= nominal;
       }
     }
 
@@ -217,20 +221,24 @@ class _DetailLaporanKasScreenState extends State<DetailLaporanKasScreen> {
 
     for (var item in periodFlows) {
       final nominal = double.tryParse(item.jumlah) ?? 0.0;
-      final isTunai = item.cara_transaksi.toUpperCase() == 'CASH' ||
-          item.cara_transaksi.toUpperCase() == 'TUNAI';
+      bool isCashPayment(String caraTransaksi) {
+        final v = caraTransaksi.trim().toLowerCase();
+        return v == 'tunai' || v == 'cash';
+      }
+      // final isTunai = item.cara_transaksi.toUpperCase() == 'CASH' ||
+      //     item.cara_transaksi.toUpperCase() == 'TUNAI';
 
       if (item.tipe.toUpperCase() == 'MASUK') {
         if (item.order_id != null) {
           // Pendapatan dari Order Laundry
-          if (isTunai) pendapatanTunai += nominal; else pendapatanNonTunai += nominal;
+          if (isCashPayment(item.cara_transaksi)) pendapatanTunai += nominal; else pendapatanNonTunai += nominal;
         } else {
           // Penambahan Kas (seperti Tambah Modal)
-          if (isTunai) penambahanTunai += nominal; else penambahanNonTunai += nominal;
+          if (isCashPayment(item.cara_transaksi)) penambahanTunai += nominal; else penambahanNonTunai += nominal;
         }
       } else if (item.tipe.toUpperCase() == 'KELUAR') {
         // Pengurangan Kas Operasional
-        if (isTunai) penguranganTunai += nominal; else penguranganNonTunai += nominal;
+        if (isCashPayment(item.cara_transaksi)) penguranganTunai += nominal; else penguranganNonTunai += nominal;
       }
     }
 
